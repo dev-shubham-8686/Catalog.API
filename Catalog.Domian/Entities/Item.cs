@@ -21,18 +21,19 @@ namespace Catalog.Domian.Entities
         public Guid? GenreId { get; set; }
         public Artist? Artist { get; set; }
         public Guid? ArtistId { get; set; }
+        //public Price? Price { get; set; }
 
-        public void setPrice(Price price)
-        {
-            if (price.Amount.HasValue && !string.IsNullOrEmpty(price.Currency))
-            {
-                Price = $"{price.Amount.Value}:{price.Currency}";
-            }
-            else
-            {
-                Price = null;
-            }
-        }
+        //public void setPrice(Price price)
+        //{
+        //    if (price.Amount.HasValue && !string.IsNullOrEmpty(price.Currency))
+        //    {
+        //        Price = $"{price.Amount.Value}:{price.Currency}";
+        //    }
+        //    else
+        //    {
+        //        Price = null;
+        //    }
+        //}
 
     }
 }

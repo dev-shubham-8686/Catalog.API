@@ -6,4 +6,7 @@
     <Project Path="Catalog.Domian/Catalog.Domian.csproj" Id="314c0ffe-da0d-4ee3-b58d-eef68b5d131e" />
     <Project Path="Catalog.Infrastructure/Catalog.Infrastructure.csproj" Id="186877c2-93c8-4517-8385-92f46a2c883d" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="Catalog.Infrastructure.Tests/Catalog.Infrastructure.Tests.csproj" Id="b0d56977-021d-43a1-b10f-b625406f277d" />
+  </Folder>
 </Solution>
