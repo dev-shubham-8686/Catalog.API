@@ -1,4 +1,5 @@
 using Catalog.Domain.Entities;
+using Catalog.Domain.Logging;
 using Catalog.Domain.Repositories;
 using Catalog.Domain.Requests.Item;
 using Catalog.Domain.Responses.Item;
@@ -7,15 +8,19 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace Catalog.Domain.Services
 {
     public class ItemService : IItemService
     {
-        private readonly IItemRepository _itemRepository;           
-        public ItemService(IItemRepository itemRepository)
+        private readonly IItemRepository _itemRepository;
+        private readonly ILogger<IItemService> _logger;
+
+        public ItemService(IItemRepository itemRepository, ILogger<IItemService> logger)
         {
             _itemRepository = itemRepository ?? throw new ArgumentNullException(nameof(itemRepository));
+            _logger = logger;
         }
         public async Task<AddItemResponse> AddItemAsync(AddItemRequest request, CancellationToken cancellationToken = default)
         {
@@ -29,6 +34,9 @@ namespace Catalog.Domain.Services
 
             var result = await _itemRepository.AddAsync(item, cancellationToken);
             var modifiedRecords = await _itemRepository.UnitOfWork.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation(Logging.Events.Add, Messages.NumberOfRecordAffected_modifiedRecords, modifiedRecords);
+            _logger.LogInformation(Logging.Events.Add, Messages.ChangesApplied_id, result.Id);
 
             return new AddItemResponse
             {
@@ -46,13 +54,18 @@ namespace Catalog.Domain.Services
 
             var existingRecord = await _itemRepository.GetItemAsync(request.Id, cancellationToken);
 
-            if(existingRecord != null)
+            int modifiedRecords = 0;
+
+            if (existingRecord != null)
             {
                 await _itemRepository.DeleteAsync(request.Id, cancellationToken);
 
-                var modifiedRecords = await _itemRepository.UnitOfWork.SaveChangesAsync(cancellationToken);
+                modifiedRecords = await _itemRepository.UnitOfWork.SaveChangesAsync(cancellationToken);
             }
-  
+
+            _logger.LogInformation(Logging.Events.Delete, Messages.NumberOfRecordAffected_modifiedRecords,
+                modifiedRecords);
+
         }
 
         public async Task<EditItemResponse> EditItemAsync(EditItemRequest request, CancellationToken cancellationToken = default)
@@ -70,6 +83,11 @@ namespace Catalog.Domain.Services
 
             var modifiedRecords = await _itemRepository.UnitOfWork.SaveChangesAsync(cancellationToken);
 
+            _logger.LogInformation(Logging.Events.Edit, Messages.NumberOfRecordAffected_modifiedRecords,
+                modifiedRecords);
+
+            _logger.LogInformation(Logging.Events.Edit, Messages.ChangesApplied_id, result.Id);
+
             return new EditItemResponse
             {
                 Id = result.Id,
@@ -83,6 +101,8 @@ namespace Catalog.Domain.Services
             ArgumentNullException.ThrowIfNull(request);
 
             var entity = await _itemRepository.GetAsync(request.Id, cancellationToken);
+
+            _logger.LogInformation(Logging.Events.GetById, Messages.TargetEntityChanged_id, entity?.Id);
 
             if (entity == null) throw new ArgumentException($"Entity with {request.Id} is not present");
 
@@ -110,6 +130,8 @@ namespace Catalog.Domain.Services
         public async Task<GetItemsResponse> GetItemsAsync(CancellationToken cancellationToken = default)
         {
             var result = await _itemRepository.GetAsync(cancellationToken);
+
+            _logger.LogInformation(Logging.Events.GetById, Messages.NumberOfRecordAffected_modifiedRecords, result.Count());
 
             var response = new GetItemsResponse();
 

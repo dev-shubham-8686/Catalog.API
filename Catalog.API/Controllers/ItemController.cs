@@ -10,15 +10,18 @@ namespace Catalog.API.Controllers
 {
     
     [ApiController]
+    [JsonException]
     public class ItemController : ControllerBase
     {
         private readonly IItemService _itemService;
         private readonly IDistributedCache _distributedCache;
+        private readonly ILogger<ItemController> _logger;
 
-        public ItemController(IItemService itemService, IDistributedCache distributedCache)
+        public ItemController(IItemService itemService, IDistributedCache distributedCache, ILogger<ItemController> logger)
         {
             _itemService = itemService;
             _distributedCache = distributedCache;
+            _logger = logger;
         }
 
         [HttpGet(ApiEndpoints.Items.GetAll)]
