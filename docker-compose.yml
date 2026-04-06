@@ -39,6 +39,8 @@ services:
   catalog_cache:
       container_name: catalog_cache
       image: redis:alpine
+      ports:
+        - "6379:6379"
       networks:
         - my_network
       

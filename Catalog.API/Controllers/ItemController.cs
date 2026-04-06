@@ -1,4 +1,5 @@
-﻿using Catalog.API.Filters;
+﻿using Catalog.API.Extensions;
+using Catalog.API.Filters;
 using Catalog.Domain.Requests.Item;
 using Catalog.Domain.Responses.Item;
 using Catalog.Domain.Services;
@@ -35,6 +36,15 @@ namespace Catalog.API.Controllers
         [TypeFilter(typeof(RedisCacheFilter), Arguments = new object[] { 20 })]
         public async Task<IActionResult> Get([FromRoute] Guid id, CancellationToken cancellationToken = default)
         {
+            //var key = $"{typeof(ItemController).FullName}.{nameof(Get)}.{id}";
+
+            //var cachedResult = await _distributedCache.
+            //    GetObjectAsync<GetItemResponse>(key);
+
+            //if (cachedResult != null)
+            //{
+            //    return Ok(cachedResult);
+            //}
 
             var response = await _itemService.GetItemAsync(new GetItemRequest { Id = id }, cancellationToken);
 
@@ -42,6 +52,8 @@ namespace Catalog.API.Controllers
             {
                 return NotFound();
             }
+
+            //await _distributedCache.SetObjectAsync(key, response);
 
             return Ok(response);
         }

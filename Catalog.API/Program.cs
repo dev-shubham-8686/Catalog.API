@@ -25,7 +25,12 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddCatalogContext(config.GetSection("DataSource:ConnectionString").Value!);
 builder.Services.AddSqlConnectionFactory(config.GetSection("DataSource:ConnectionString").Value!);
 
-builder.Services.AddScoped<IItemRepository, ItemRepository>()
+builder.Services.AddOpenApiDocument(settings => {
+    settings.Title = "Catalog API";
+    settings.DocumentName = "v3";
+    settings.Version = "v3";
+    })
+    .AddScoped<IItemRepository, ItemRepository>()
     .AddServices()
     .AddResponseCaching()
     .AddDistributedRedisCache(config);
@@ -60,6 +65,10 @@ if (app.Environment.IsDevelopment() || app.Environment.IsIntegration())
 ExecuteMigrations(app, app.Environment);
 
 app.UseHttpsRedirection();
+
+app.UseOpenApi();
+
+app.UseSwaggerUi();
 
 app.UseAuthorization();
 
