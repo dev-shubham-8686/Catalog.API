@@ -2,14 +2,11 @@ using Catalog.API.Extensions;
 using Catalog.API.Middleware;
 using Catalog.Domain.Extensions;
 using Catalog.Domain.Repositories;
-using Catalog.Domain.Services;
 using Catalog.Infrastructure;
+using Catalog.Infrastructure.Extensions;
 using Catalog.Infrastructure.Repositories;
-using Catalog.InfrastructureSP;
-using Microsoft.AspNetCore.Connections;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Polly;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -25,15 +22,18 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddCatalogContext(config.GetSection("DataSource:ConnectionString").Value!);
 builder.Services.AddSqlConnectionFactory(config.GetSection("DataSource:ConnectionString").Value!);
 
-builder.Services.AddOpenApiDocument(settings => {
-    settings.Title = "Catalog API";
-    settings.DocumentName = "v3";
-    settings.Version = "v3";
-    })
+//builder.Services.AddOpenApiDocument(settings => {
+//    settings.Title = "Catalog API";
+//    settings.DocumentName = "v3";
+//    settings.Version = "v3";
+//    })
+builder.Services
     .AddScoped<IItemRepository, ItemRepository>()
     .AddServices()
     .AddResponseCaching()
     .AddDistributedRedisCache(config);
+
+builder.Services.AddEventBus(config);
 
 
 void ExecuteMigrations(IApplicationBuilder app,
@@ -49,7 +49,7 @@ void ExecuteMigrations(IApplicationBuilder app,
                     TimeSpan.FromSeconds(12)
         });
 
-    retry.Execute(() => app.ApplicationServices.GetService<CatalogContext>().Database.Migrate());
+    retry.Execute(() => app.ApplicationServices.GetService<CatalogContext>()!.Database.Migrate());
 }
 
 var app = builder.Build();
@@ -66,9 +66,9 @@ ExecuteMigrations(app, app.Environment);
 
 app.UseHttpsRedirection();
 
-app.UseOpenApi();
+//app.UseOpenApi();
 
-app.UseSwaggerUi();
+//app.UseSwaggerUi();
 
 app.UseAuthorization();
 
