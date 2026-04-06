@@ -14,6 +14,8 @@ services:
       - 5000:5000
     depends_on:
       - catalog_db
+      - catalog_esb
+      - catalog_cache
 
   catalog_db:
     container_name: catalog_db
@@ -24,6 +26,21 @@ services:
       - my_network
     env_file:
       - containers/db/db.env
+      
+  catalog_esb:
+    container_name: catalog_esb
+    image: rabbitmq:3-management-alpine
+    ports:
+      - 5672:5672
+      - 15672:15672
+    networks:
+      - my_network  
+      
+  catalog_cache:
+      container_name: catalog_cache
+      image: redis:alpine
+      networks:
+        - my_network
       
 networks:
   my_network:
