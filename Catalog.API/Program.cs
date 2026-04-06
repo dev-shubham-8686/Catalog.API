@@ -1,7 +1,8 @@
 using Catalog.API.Extensions;
-using Catalog.Domian.Extensions;
-using Catalog.Domian.Repositories;
-using Catalog.Domian.Services;
+using Catalog.API.Middleware;
+using Catalog.Domain.Extensions;
+using Catalog.Domain.Repositories;
+using Catalog.Domain.Services;
 using Catalog.Infrastructure;
 using Catalog.Infrastructure.Repositories;
 using Catalog.InfrastructureSP;
@@ -21,19 +22,19 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
 builder.Services.AddCatalogContext(config.GetSection("DataSource:ConnectionString").Value!);
-
 builder.Services.AddSqlConnectionFactory(config.GetSection("DataSource:ConnectionString").Value!);
 
-builder.Services.AddServices();
+builder.Services.AddScoped<IItemRepository, ItemRepository>()
+    .AddServices()
+    .AddResponseCaching()
+    .AddDistributedRedisCache(config);
 
-builder.Services.AddScoped<IItemRepository, ItemRepository>();
 
 void ExecuteMigrations(IApplicationBuilder app,
          IWebHostEnvironment env)
 {
-    if (env.IsDevelopment() || env.EnvironmentName == "Integration") return;
+    if (env.IsDevelopment() || env.IsIntegration()) return;
 
     var retry = Policy.Handle<SqlException>()
         .WaitAndRetry(new TimeSpan[]
@@ -49,7 +50,7 @@ void ExecuteMigrations(IApplicationBuilder app,
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Integration"))
+if (app.Environment.IsDevelopment() || app.Environment.IsIntegration())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
@@ -62,6 +63,10 @@ app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
+app.UseResponseCaching();
+
 app.MapControllers();
+
+app.UseMiddleware<ResponseTimeMiddlewareAsync>();
 
 app.Run();

@@ -1,11 +1,11 @@
-using Catalog.Domian.Entities;
+using Catalog.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Catalog.Domian.Repositories
+namespace Catalog.Domain.Repositories
 {
     public interface IItemRepository: IRepository
     {

@@ -1,12 +1,12 @@
-﻿using Catalog.Domian.Requests.Item;
-using Catalog.Domian.Responses.Item;
+﻿using Catalog.Domain.Requests.Item;
+using Catalog.Domain.Responses.Item;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Catalog.Domian.Services
+namespace Catalog.Domain.Services
 {
     public interface IItemService
     {

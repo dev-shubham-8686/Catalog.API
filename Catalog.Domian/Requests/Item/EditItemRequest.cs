@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Catalog.Domian.Requests.Item
+namespace Catalog.Domain.Requests.Item
 {
     public class EditItemRequest
     {

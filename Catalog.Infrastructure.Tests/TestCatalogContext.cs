@@ -1,4 +1,4 @@
-﻿using Catalog.Domian.Entities;
+﻿using Catalog.Domain.Entities;
 using Catalog.Infrastructure.Tests.Extensions;
 using Microsoft.EntityFrameworkCore;
 using System;

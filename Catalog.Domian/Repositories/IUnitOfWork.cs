@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Catalog.Domian.Repositories
+namespace Catalog.Domain.Repositories
 {
     public interface IUnitOfWork: IDisposable
     {

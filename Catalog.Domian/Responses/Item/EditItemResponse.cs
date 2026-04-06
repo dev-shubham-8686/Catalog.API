@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Catalog.Domian.Responses.Item
+namespace Catalog.Domain.Responses.Item
 {
     public class EditItemResponse
     {

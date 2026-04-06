@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Catalog.Domian.Entities
+namespace Catalog.Domain.Entities
 {
     public class Genre
     {

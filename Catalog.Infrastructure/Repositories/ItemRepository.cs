@@ -1,5 +1,5 @@
-using Catalog.Domian.Entities;
-using Catalog.Domian.Repositories;
+using Catalog.Domain.Entities;
+using Catalog.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;

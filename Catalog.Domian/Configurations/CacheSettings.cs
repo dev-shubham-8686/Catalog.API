@@ -4,10 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Catalog.Domain.Requests.Item
+namespace Catalog.Domain.Configurations
 {
-    public class DeleteItemRequest
+    public class CacheSettings
     {
-        public Guid Id { get; set; }
+        public string ConnectionString { get; set; }
     }
 }

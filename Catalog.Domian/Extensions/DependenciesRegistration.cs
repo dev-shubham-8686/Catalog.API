@@ -1,4 +1,4 @@
-﻿using Catalog.Domian.Services;
+﻿using Catalog.Domain.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Catalog.Domian.Extensions
+namespace Catalog.Domain.Extensions
 {
     public static class DependenciesRegistration
     {

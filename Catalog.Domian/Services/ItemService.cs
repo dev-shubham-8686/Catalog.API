@@ -1,14 +1,14 @@
-using Catalog.Domian.Entities;
-using Catalog.Domian.Repositories;
-using Catalog.Domian.Requests.Item;
-using Catalog.Domian.Responses.Item;
+using Catalog.Domain.Entities;
+using Catalog.Domain.Repositories;
+using Catalog.Domain.Requests.Item;
+using Catalog.Domain.Responses.Item;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Catalog.Domian.Services
+namespace Catalog.Domain.Services
 {
     public class ItemService : IItemService
     {
