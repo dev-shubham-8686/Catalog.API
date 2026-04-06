@@ -1,15 +1,17 @@
-FROM mcr.microsoft.com/dotnet/core/aspnet:latest AS base
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 WORKDIR /app
 
-FROM mcr.microsoft.com/dotnet/core/sdk:latest AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /project
-COPY ["src/Catalog.API/Catalog.API.csproj", "src/Catalog.API/"]
+
+# docker-compose sets build context to the repo root (Catalog.API/).
+# Keep the same on-disk layout inside the container so ProjectReference paths resolve.
 COPY . .
-WORKDIR "//project/src/Catalog.API"
-RUN dotnet build "Catalog.API.csproj" -c Release -o /app/build
+
+RUN dotnet build "Catalog.API/Catalog.API.csproj" -c Release -o /app/build
 
 FROM build AS publish
-RUN dotnet publish "Catalog.API.csproj" -c Release -o /app/publish
+RUN dotnet publish "Catalog.API/Catalog.API.csproj" -c Release -o /app/publish
 
 FROM base AS final
 WORKDIR /app

@@ -21,6 +21,9 @@ namespace Catalog.Domian.Entities
         public Guid? GenreId { get; set; }
         public Artist? Artist { get; set; }
         public Guid? ArtistId { get; set; }
+
+        public bool? IsInactive { get; set; }
+
         //public Price? Price { get; set; }
 
         //public void setPrice(Price price)

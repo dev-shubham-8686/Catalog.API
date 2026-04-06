@@ -1,4 +1,5 @@
 ﻿using Catalog.Infrastructure;
+using Catalog.InfrastructureSP;
 using Microsoft.EntityFrameworkCore;
 
 namespace Catalog.API.Extensions
@@ -17,6 +18,18 @@ namespace Catalog.API.Extensions
                     );
                         
                 });
+        }
+
+
+        public static IServiceCollection AddSqlConnectionFactory(this IServiceCollection services, string connectionString)
+        {
+            MssqlConnectionFactory mssqlConnectionFactory(IServiceProvider _)
+            {
+                return new MssqlConnectionFactory(connectionString);
+            }
+
+            return services.AddSingleton<IDbConnectionFactory>(mssqlConnectionFactory);
+
         }
     }
 }

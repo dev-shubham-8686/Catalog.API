@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,6 +10,6 @@ namespace Catalog.Domian.Entities
     {
         public Guid GenreId { get; set; }
         public string? GenreDescription { get; set; }
-        public ICollection<Item> Items { get; set; } = new List<Item>();
+        public ICollection<Item> Items { get; set; } = [];
     }
 }

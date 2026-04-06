@@ -1,4 +1,4 @@
-﻿using Catalog.Domian.Entities;
+using Catalog.Domian.Entities;
 using Catalog.Domian.Repositories;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -12,36 +12,57 @@ namespace Catalog.Infrastructure.Repositories
     public class ItemRepository : IItemRepository
     {
         private readonly CatalogContext _context;
-        public IUnitOfWork UnitOfWork => _context;
+        public IUnitOfWork UnitOfWork
+        {
+            get
+            {
+                return _context;
+            }
+        }
         public ItemRepository(CatalogContext context)
         {
             _context = context ?? throw new
              ArgumentNullException(nameof(context));
         }
-        public async Task<IEnumerable<Item>> GetAsync()
+        public async Task<IEnumerable<Item>> GetAsync(CancellationToken cancellationToken = default)
         {
             return await _context
                             .Items
                             .AsNoTracking()
-                            .ToListAsync();
+                            .ToListAsync(cancellationToken);
         }
-        public async Task<Item?> GetAsync(Guid id)
+        public async Task<Item?> GetAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            var item = await _context.Items
+            return await _context.Items
                             .AsNoTracking()
                             .Where(x => x.Id == id)
-                            .Include(x => x.Genre).Include(x => x.Artist).FirstOrDefaultAsync();
+                            .Include(x => x.Genre).Include(x => x.Artist).FirstOrDefaultAsync(cancellationToken);
+        }
+        public async Task<Item> AddAsync(Item item, CancellationToken cancellationToken = default)
+        {
+            var createdItem =  await _context.Items.AddAsync(item, cancellationToken);
+
+            return createdItem.Entity;
+        }
+        public async Task<Item> UpdateAsync(Item item, CancellationToken cancellationToken = default)
+        {
+           _context.Entry(item).State = EntityState.Modified;
+
             return item;
         }
-        public Item Add(Item order)
+
+        public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            return _context.Items
-                            .Add(order).Entity;
+            var item = await GetItemAsync(id, cancellationToken);
+            if (item is null)
+                return;
+
+            _context.Entry(item).State = EntityState.Deleted;
         }
-        public Item Update(Item item)
+
+        public async Task<Item?> GetItemAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            _context.Entry(item).State = EntityState.Modified;
-            return item;
+            return await _context.Items.FindAsync([id], cancellationToken);
         }
     }
 
