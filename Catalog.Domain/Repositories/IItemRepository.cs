@@ -12,7 +12,7 @@ namespace Catalog.Domain.Repositories
         Task<IEnumerable<Item>> GetAsync(CancellationToken cancellationToken = default);
         Task<Item?> GetAsync(Guid id, CancellationToken cancellation = default);
         Task<Item> AddAsync(Item item, CancellationToken cancellationToken = default);
-        Task<Item> UpdateAsync(Item item, CancellationToken cancellationToken = default);
+        Item Update(Item item, CancellationToken cancellationToken = default);
         Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
         Task<Item?> GetItemAsync(Guid id, CancellationToken cancellationToken = default);
 

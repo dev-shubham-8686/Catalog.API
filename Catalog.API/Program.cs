@@ -74,8 +74,8 @@ app.UseAuthorization();
 
 app.UseResponseCaching();
 
-app.MapControllers();
-
 app.UseMiddleware<ResponseTimeMiddlewareAsync>();
+
+app.MapControllers();
 
 app.Run();

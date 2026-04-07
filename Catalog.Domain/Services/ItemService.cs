@@ -69,7 +69,7 @@ namespace Catalog.Domain.Services
             existingRecord.Name = request.Name;
             existingRecord.Description = request.Description;
 
-            var result = await _itemRepository.UpdateAsync(existingRecord, cancellationToken);
+            var result =  _itemRepository.Update(existingRecord, cancellationToken);
 
             var modifiedRecords = await _itemRepository.UnitOfWork.SaveChangesAsync(cancellationToken);
 

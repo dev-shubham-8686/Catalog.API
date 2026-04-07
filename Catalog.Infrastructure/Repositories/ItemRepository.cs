@@ -44,7 +44,7 @@ namespace Catalog.Infrastructure.Repositories
 
             return createdItem.Entity;
         }
-        public async Task<Item> UpdateAsync(Item item, CancellationToken cancellationToken = default)
+        public Item Update(Item item, CancellationToken cancellationToken = default)
         {
            _context.Entry(item).State = EntityState.Modified;
 

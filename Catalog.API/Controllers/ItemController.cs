@@ -68,8 +68,6 @@ namespace Catalog.API.Controllers
         {
             var response = await _itemService.AddItemAsync(request, cancellationToken);
 
-            //return Ok(response);
-
             var getItemResponse = await _itemService.GetItemAsync(new GetItemRequest { Id = response.Id }, cancellationToken);
 
             return CreatedAtAction(nameof(Get), new { id = response.Id }, getItemResponse);
@@ -82,11 +80,6 @@ namespace Catalog.API.Controllers
         {
             var response = await _itemService.EditItemAsync(id, request, cancellationToken);
 
-            //if(response is null)
-            //{
-            //    return NotFound();
-            //}
-
             return Ok(response);
         }
 
@@ -95,7 +88,7 @@ namespace Catalog.API.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Delete([FromRoute] Guid id, CancellationToken cancellationToken = default)
         {
-          
+     
             await _itemService.DeleteItemAsync(new DeleteItemRequest { Id = id }, cancellationToken);
 
             return Ok();
