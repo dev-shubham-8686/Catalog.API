@@ -1,16 +1,18 @@
 using Catalog.Domain.Entities;
 using Catalog.Domain.Logging;
+using Catalog.Domain.Mappers;
 using Catalog.Domain.Repositories;
 using Catalog.Domain.Requests.Item;
+using Catalog.Domain.Responses;
 using Catalog.Domain.Responses.Item;
+using FluentValidation;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
-using Catalog.Domain.Mappers;
-using Catalog.Domain.Responses;
 
 namespace Catalog.Domain.Services
 {
@@ -18,15 +20,18 @@ namespace Catalog.Domain.Services
     {
         private readonly IItemRepository _itemRepository;
         private readonly ILogger<IItemService> _logger;
-
-        public ItemService(IItemRepository itemRepository, ILogger<IItemService> logger)
+        private readonly IValidator<AddItemRequest> _addItemRequestValidator;
+        public ItemService(IItemRepository itemRepository, ILogger<IItemService> logger, IValidator<AddItemRequest> addItemRequestValidator)
         {
             _itemRepository = itemRepository ?? throw new ArgumentNullException(nameof(itemRepository));
             _logger = logger;
+            _addItemRequestValidator = addItemRequestValidator;
         }
         public async Task<AddItemResponse> AddItemAsync(AddItemRequest request, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(request);
+
+            await _addItemRequestValidator.ValidateAndThrowAsync(request, cancellationToken);
 
             var item = request.MapToItem();
 
@@ -105,7 +110,7 @@ namespace Catalog.Domain.Services
         {
            var result = await _itemRepository.GetAsync(pageSize, pageIndex, cancellationToken);
 
-           var totalItems = result.Count();
+           var totalItems = await _itemRepository.CountAsync(cancellationToken);
            _logger.LogInformation(Logging.Events.Get, Messages.NumberOfRecordAffected_modifiedRecords, totalItems);
 
             return result.MapToPaginatedItemResponseModel(pageSize, pageIndex, totalItems);

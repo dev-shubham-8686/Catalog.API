@@ -38,6 +38,10 @@ namespace Catalog.Infrastructure.Repositories
                             .Where(x => x.Id == id)
                             .Include(x => x.Genre).Include(x => x.Artist).FirstOrDefaultAsync(cancellationToken);
         }
+        public async Task<long> CountAsync(CancellationToken cancellationToken = default)
+        {
+            return await _context.Items.LongCountAsync(cancellationToken);
+        }
         public async Task<Item> AddAsync(Item item, CancellationToken cancellationToken = default)
         {
             var createdItem =  await _context.Items.AddAsync(item, cancellationToken);
