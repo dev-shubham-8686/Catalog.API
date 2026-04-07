@@ -1,4 +1,5 @@
 using Catalog.API.Extensions;
+using Catalog.API.HealthChecks;
 using Catalog.API.Middleware;
 using Catalog.Domain.Extensions;
 using Catalog.Domain.Repositories;
@@ -7,6 +8,7 @@ using Catalog.Infrastructure.Extensions;
 using Catalog.Infrastructure.Repositories;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Polly;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -35,6 +37,10 @@ builder.Services
 
 builder.Services.AddEventBus(config);
 
+builder.Services
+        .AddHealthChecks()
+        .AddCheck<RedisCacheHealthCheck>("cache_health_check")
+        .AddSqlServer(config.GetSection("DataSource:ConnectionString").Value!);
 
 void ExecuteMigrations(IApplicationBuilder app,
          IWebHostEnvironment env)
@@ -73,6 +79,8 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.UseResponseCaching();
+
+app.UseHealthChecks("/health");
 
 app.UseMiddleware<ResponseTimeMiddlewareAsync>();
 
