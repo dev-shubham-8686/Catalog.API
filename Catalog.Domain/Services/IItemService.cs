@@ -1,4 +1,5 @@
 ﻿using Catalog.Domain.Requests.Item;
+using Catalog.Domain.Responses;
 using Catalog.Domain.Responses.Item;
 using System;
 using System.Collections.Generic;
@@ -11,6 +12,8 @@ namespace Catalog.Domain.Services
     public interface IItemService
     {
         Task<GetItemsResponse> GetItemsAsync(CancellationToken cancellationToken = default);
+
+        Task<PaginatedItemResponseModel<GetItemResponse>> GetItemsAsync(int pageSize, int pageIndex, CancellationToken cancellationToken = default);
 
         Task<GetItemResponse> GetItemAsync(GetItemRequest request, CancellationToken cancellationToken = default);
 

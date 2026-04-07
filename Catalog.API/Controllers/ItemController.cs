@@ -1,6 +1,7 @@
 ﻿using Catalog.API.Extensions;
 using Catalog.API.Filters;
 using Catalog.Domain.Requests.Item;
+using Catalog.Domain.Responses;
 using Catalog.Domain.Responses.Item;
 using Catalog.Domain.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -24,11 +25,23 @@ namespace Catalog.API.Controllers
             _logger = logger;
         }
 
+        #region GellAll with and without pagination
+        //[HttpGet(ApiEndpoints.Items.GetAll)]
+        //[ProducesResponseType(typeof(GetItemsResponse), StatusCodes.Status200OK)]
+        //public async Task<IActionResult> GetAll(CancellationToken cancellationToken = default)
+        //{
+        //    var response = await _itemService.GetItemsAsync(cancellationToken);
+        //    return Ok(response);
+        //}
+        #endregion
+
+
         [HttpGet(ApiEndpoints.Items.GetAll)]
-        [ProducesResponseType(typeof(GetItemsResponse), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetAll(CancellationToken cancellationToken = default)
+        [ProducesResponseType(typeof(PaginatedItemResponseModel<GetItemResponse>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetAll([FromQuery] int pageSize = 10, [FromQuery] int pageIndex = 0, CancellationToken cancellationToken = default)
         {
-            var response = await _itemService.GetItemsAsync(cancellationToken);
+            var response = await _itemService.GetItemsAsync(pageSize, pageIndex, cancellationToken);
+
             return Ok(response);
         }
 

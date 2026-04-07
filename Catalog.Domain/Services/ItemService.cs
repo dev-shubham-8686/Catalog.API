@@ -10,6 +10,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Catalog.Domain.Mappers;
+using Catalog.Domain.Responses;
 
 namespace Catalog.Domain.Services
 {
@@ -96,9 +97,19 @@ namespace Catalog.Domain.Services
         {
             var result = await _itemRepository.GetAsync(cancellationToken);
 
-            _logger.LogInformation(Logging.Events.GetById, Messages.NumberOfRecordAffected_modifiedRecords, result.Count());
+            _logger.LogInformation(Logging.Events.Get, Messages.NumberOfRecordAffected_modifiedRecords, result.Count());
 
             return result.MapToGetItemsResponse();
         }
+        public async Task<PaginatedItemResponseModel<GetItemResponse>> GetItemsAsync(int pageSize, int pageIndex, CancellationToken cancellationToken = default)
+        {
+           var result = await _itemRepository.GetAsync(pageSize, pageIndex, cancellationToken);
+
+           var totalItems = result.Count();
+           _logger.LogInformation(Logging.Events.Get, Messages.NumberOfRecordAffected_modifiedRecords, totalItems);
+
+            return result.MapToPaginatedItemResponseModel(pageSize, pageIndex, totalItems);
+        }
+
     }
 }

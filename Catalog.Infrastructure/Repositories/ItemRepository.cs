@@ -64,6 +64,17 @@ namespace Catalog.Infrastructure.Repositories
         {
             return await _context.Items.FindAsync([id], cancellationToken);
         }
+
+        public async Task<IEnumerable<Item>> GetAsync(int pageSize, int pageIndex, CancellationToken cancellationToken = default)
+        {
+            return await _context
+                            .Items
+                            .AsNoTracking()
+                            .OrderBy(x => x.Name)
+                            .Skip(pageSize * pageIndex)
+                            .Take(pageSize)
+                            .ToListAsync(cancellationToken);
+        }
     }
 
 }

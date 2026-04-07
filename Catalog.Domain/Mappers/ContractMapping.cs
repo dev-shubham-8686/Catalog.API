@@ -1,5 +1,6 @@
 ﻿using Catalog.Domain.Entities;
 using Catalog.Domain.Requests.Item;
+using Catalog.Domain.Responses;
 using Catalog.Domain.Responses.Item;
 using System;
 using System.Collections.Generic;
@@ -68,6 +69,12 @@ namespace Catalog.Domain.Mappers
                 Name = request.Name,
                 Description = request.Description
             };
+        }
+
+        public static PaginatedItemResponseModel<GetItemResponse> MapToPaginatedItemResponseModel(this IEnumerable<Item> items, int pageSize, int pageIndex, int totalItems)
+        {
+            return new PaginatedItemResponseModel<GetItemResponse>(
+                pageIndex, pageSize, totalItems, items.MapToGetItemsResponse().Items);
         }
 
         #endregion

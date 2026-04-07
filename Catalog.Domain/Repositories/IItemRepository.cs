@@ -1,4 +1,6 @@
 using Catalog.Domain.Entities;
+using Catalog.Domain.Responses;
+using Catalog.Domain.Responses.Item;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,6 +12,7 @@ namespace Catalog.Domain.Repositories
     public interface IItemRepository: IRepository
     {
         Task<IEnumerable<Item>> GetAsync(CancellationToken cancellationToken = default);
+        Task<IEnumerable<Item>> GetAsync(int pageSize, int pageIndex, CancellationToken cancellationToken = default);
         Task<Item?> GetAsync(Guid id, CancellationToken cancellation = default);
         Task<Item> AddAsync(Item item, CancellationToken cancellationToken = default);
         Item Update(Item item, CancellationToken cancellationToken = default);
