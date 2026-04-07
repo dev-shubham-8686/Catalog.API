@@ -1,4 +1,5 @@
 ﻿using Catalog.Domain.Services;
+using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
@@ -13,7 +14,8 @@ namespace Catalog.Domain.Extensions
         public static IServiceCollection AddServices(this IServiceCollection services)
         {
             services
-                .AddScoped<IItemService, ItemService>();
+                .AddScoped<IItemService, ItemService>()
+                .AddValidatorsFromAssemblyContaining<IApplicationMarker>(ServiceLifetime.Scoped);
 
             return services;
         }

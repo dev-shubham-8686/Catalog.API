@@ -84,6 +84,8 @@ app.UseHealthChecks("/health");
 
 app.UseMiddleware<ResponseTimeMiddlewareAsync>();
 
+app.UseMiddleware<ValidationMappingMiddleware>();
+
 app.MapControllers();
 
 app.Run();
