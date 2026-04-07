@@ -7,21 +7,15 @@ using Catalog.Domain.Responses;
 using Catalog.Domain.Responses.Item;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Catalog.Domain.Services
 {
     public class ItemService : IItemService
     {
         private readonly IItemRepository _itemRepository;
-        private readonly ILogger<IItemService> _logger;
+        private readonly ILogger<ItemService> _logger;
         private readonly IValidator<AddItemRequest> _addItemRequestValidator;
-        public ItemService(IItemRepository itemRepository, ILogger<IItemService> logger, IValidator<AddItemRequest> addItemRequestValidator)
+        public ItemService(IItemRepository itemRepository, ILogger<ItemService> logger, IValidator<AddItemRequest> addItemRequestValidator)
         {
             _itemRepository = itemRepository ?? throw new ArgumentNullException(nameof(itemRepository));
             _logger = logger;
