@@ -14,7 +14,7 @@ namespace Catalog.Domain.Repositories
         Task<Item> AddAsync(Item item, CancellationToken cancellationToken = default);
         Item Update(Item item, CancellationToken cancellationToken = default);
         Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
-        Task<Item?> GetItemAsync(Guid id, CancellationToken cancellationToken = default);
+        Task<Item?> FindItemAsync(Guid id, CancellationToken cancellationToken = default);
 
     }
 }

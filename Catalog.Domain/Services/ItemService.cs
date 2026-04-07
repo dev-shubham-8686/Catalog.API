@@ -21,7 +21,7 @@ namespace Catalog.Domain.Services
         public ItemService(IItemRepository itemRepository, ILogger<IItemService> logger)
         {
             _itemRepository = itemRepository ?? throw new ArgumentNullException(nameof(itemRepository));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _logger = logger;
         }
         public async Task<AddItemResponse> AddItemAsync(AddItemRequest request, CancellationToken cancellationToken = default)
         {
@@ -43,7 +43,7 @@ namespace Catalog.Domain.Services
         {
             ArgumentNullException.ThrowIfNull(request);
 
-            var existingRecord = await _itemRepository.GetItemAsync(request.Id, cancellationToken);
+            var existingRecord = await _itemRepository.FindItemAsync(request.Id, cancellationToken);
 
             int modifiedRecords = 0;
 
@@ -62,7 +62,7 @@ namespace Catalog.Domain.Services
         {
             ArgumentNullException.ThrowIfNull(request);
 
-            var existingRecord = await _itemRepository.GetAsync(id, cancellationToken);
+            var existingRecord = await _itemRepository.FindItemAsync(id, cancellationToken);
 
             if (existingRecord == null) throw new ArgumentException($"Entity with {id} is not present");
 

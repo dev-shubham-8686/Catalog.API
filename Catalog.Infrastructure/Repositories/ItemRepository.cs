@@ -53,14 +53,14 @@ namespace Catalog.Infrastructure.Repositories
 
         public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            var item = await GetItemAsync(id, cancellationToken);
+            var item = await FindItemAsync(id, cancellationToken);
             if (item is null)
                 return;
 
             _context.Entry(item).State = EntityState.Deleted;
         }
 
-        public async Task<Item?> GetItemAsync(Guid id, CancellationToken cancellationToken = default)
+        public async Task<Item?> FindItemAsync(Guid id, CancellationToken cancellationToken = default)
         {
             return await _context.Items.FindAsync([id], cancellationToken);
         }
