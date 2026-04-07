@@ -32,6 +32,40 @@ namespace Catalog.API.Controllers
             return Ok(response);
         }
 
+        #region InController Redis Cache
+
+
+        //[HttpGet(ApiEndpoints.Items.Get)]
+        //[ProducesResponseType(typeof(GetItemResponse), StatusCodes.Status200OK)]
+        //[ProducesResponseType(StatusCodes.Status404NotFound)]
+        //[ResponseCache(Duration = 100, VaryByQueryKeys = new[] { "*" })]
+        ////[TypeFilter(typeof(RedisCacheFilter), Arguments = new object[] { 20 })]
+        //public async Task<IActionResult> Get([FromRoute] Guid id, CancellationToken cancellationToken = default)
+        //{
+        //    var key = $"{typeof(ItemController).FullName}.{nameof(Get)}.{id}";
+
+        //    var cachedResult = await _distributedCache.
+        //        GetObjectAsync<GetItemResponse>(key);
+
+        //    if (cachedResult != null)
+        //    {
+        //        return Ok(cachedResult);
+        //    }
+
+        //    var response = await _itemService.GetItemAsync(new GetItemRequest { Id = id }, cancellationToken);
+
+        //    if (response is null)
+        //    {
+        //        return NotFound();
+        //    }
+
+        //    await _distributedCache.SetObjectAsync(key, response);
+
+        //    return Ok(response);
+        //}
+
+        #endregion
+
         [HttpGet(ApiEndpoints.Items.Get)]
         [ProducesResponseType(typeof(GetItemResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -39,24 +73,8 @@ namespace Catalog.API.Controllers
         [TypeFilter(typeof(RedisCacheFilter), Arguments = new object[] { 20 })]
         public async Task<IActionResult> Get([FromRoute] Guid id, CancellationToken cancellationToken = default)
         {
-            //var key = $"{typeof(ItemController).FullName}.{nameof(Get)}.{id}";
-
-            //var cachedResult = await _distributedCache.
-            //    GetObjectAsync<GetItemResponse>(key);
-
-            //if (cachedResult != null)
-            //{
-            //    return Ok(cachedResult);
-            //}
 
             var response = await _itemService.GetItemAsync(new GetItemRequest { Id = id }, cancellationToken);
-
-            //if (response is null)
-            //{
-            //    return NotFound();
-            //}
-
-            //await _distributedCache.SetObjectAsync(key, response);
 
             return Ok(response);
         }
