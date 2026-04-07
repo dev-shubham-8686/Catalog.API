@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Catalog.Domain.Mappers;
 
 namespace Catalog.Domain.Services
 {
@@ -20,34 +21,24 @@ namespace Catalog.Domain.Services
         public ItemService(IItemRepository itemRepository, ILogger<IItemService> logger)
         {
             _itemRepository = itemRepository ?? throw new ArgumentNullException(nameof(itemRepository));
-            _logger = logger;
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
         public async Task<AddItemResponse> AddItemAsync(AddItemRequest request, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(request);
 
-            var item = new Item
-            {
-                Name = request.Name,
-                Description = request.Description,
-            };
+            var item = request.MapToItem();
 
             var result = await _itemRepository.AddAsync(item, cancellationToken);
             var modifiedRecords = await _itemRepository.UnitOfWork.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation(Logging.Events.Add, Messages.NumberOfRecordAffected_modifiedRecords, modifiedRecords);
             _logger.LogInformation(Logging.Events.Add, Messages.ChangesApplied_id, result.Id);
-
-            return new AddItemResponse
-            {
-                Id = result.Id,
-                Name = result.Name,
-                Description = result.Description
-            };
+            
+            return result.MapToAddItemResponse();
 
 
         }
-
         public async Task DeleteItemAsync(DeleteItemRequest request, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(request);
@@ -67,14 +58,13 @@ namespace Catalog.Domain.Services
                 modifiedRecords);
 
         }
-
-        public async Task<EditItemResponse> EditItemAsync(EditItemRequest request, CancellationToken cancellationToken = default)
+        public async Task<EditItemResponse> EditItemAsync(Guid id,EditItemRequest request, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(request);
 
-            var existingRecord = await _itemRepository.GetAsync(request.Id, cancellationToken);
+            var existingRecord = await _itemRepository.GetAsync(id, cancellationToken);
 
-            if (existingRecord == null) throw new ArgumentException($"Entity with {request.Id} is not present");
+            if (existingRecord == null) throw new ArgumentException($"Entity with {id} is not present");
 
             existingRecord.Name = request.Name;
             existingRecord.Description = request.Description;
@@ -88,71 +78,27 @@ namespace Catalog.Domain.Services
 
             _logger.LogInformation(Logging.Events.Edit, Messages.ChangesApplied_id, result.Id);
 
-            return new EditItemResponse
-            {
-                Id = result.Id,
-                Name = result.Name,
-                Description = result.Description
-            };
+            return result.MapToEditItemResponse(id);
         }
-
         public async Task<GetItemResponse> GetItemAsync(GetItemRequest request, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(request);
 
-            var entity = await _itemRepository.GetAsync(request.Id, cancellationToken);
+            var result = await _itemRepository.GetAsync(request.Id, cancellationToken);
 
-            _logger.LogInformation(Logging.Events.GetById, Messages.TargetEntityChanged_id, entity?.Id);
+            _logger.LogInformation(Logging.Events.GetById, Messages.TargetEntityChanged_id, result?.Id);
 
-            if (entity == null) throw new ArgumentException($"Entity with {request.Id} is not present");
+            if (result == null) throw new ArgumentException($"Entity with {request.Id} is not present");
 
-            var response = new GetItemResponse
-            {
-                Id = entity.Id,
-                Name = entity.Name,
-                Description = entity.Description,
-                Genre = entity.Genre != null ? new GetItemResponse.GenreInfo
-                {
-                    GenreId = entity.Genre.GenreId,
-                    GenreDescription = entity.Genre.GenreDescription
-                } : null,
-                Artist = entity.Artist != null ? new GetItemResponse.ArtistInfo
-                {
-                    ArtistId = entity.Artist.ArtistId,
-                    ArtistName = entity.Artist.ArtistName
-                } : null
-
-            };
-
-            return response;
+            return result.MapToGetItemResponse();
         }
-
         public async Task<GetItemsResponse> GetItemsAsync(CancellationToken cancellationToken = default)
         {
             var result = await _itemRepository.GetAsync(cancellationToken);
 
             _logger.LogInformation(Logging.Events.GetById, Messages.NumberOfRecordAffected_modifiedRecords, result.Count());
 
-            var response = new GetItemsResponse();
-
-            response.Items = result.Select(entity => new GetItemResponse
-            {
-                Id = entity.Id,
-                Name = entity.Name,
-                Description = entity.Description,
-                Genre = entity.Genre != null ? new GetItemResponse.GenreInfo
-                {
-                    GenreId = entity.Genre.GenreId,
-                    GenreDescription = entity.Genre.GenreDescription
-                } : null,
-                Artist = entity.Artist != null ? new GetItemResponse.ArtistInfo
-                {
-                    ArtistId = entity.Artist.ArtistId,
-                    ArtistName = entity.Artist.ArtistName
-                } : null
-            }).ToList();
-
-            return response;
+            return result.MapToGetItemsResponse();
         }
     }
 }

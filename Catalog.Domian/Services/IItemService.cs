@@ -16,7 +16,7 @@ namespace Catalog.Domain.Services
 
         Task<AddItemResponse> AddItemAsync(AddItemRequest request, CancellationToken cancellationToken = default);
 
-        Task<EditItemResponse> EditItemAsync(EditItemRequest request, CancellationToken cancellationToken = default);
+        Task<EditItemResponse> EditItemAsync(Guid id, EditItemRequest request, CancellationToken cancellationToken = default);
 
         Task DeleteItemAsync(DeleteItemRequest request, CancellationToken cancellationToken = default);
 

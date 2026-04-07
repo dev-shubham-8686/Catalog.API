@@ -10,7 +10,7 @@ namespace Catalog.API.Controllers
 {
     
     [ApiController]
-    [JsonException]
+    //[JsonException]
     public class ItemController : ControllerBase
     {
         private readonly IItemService _itemService;
@@ -51,10 +51,10 @@ namespace Catalog.API.Controllers
 
             var response = await _itemService.GetItemAsync(new GetItemRequest { Id = id }, cancellationToken);
 
-            if (response is null)
-            {
-                return NotFound();
-            }
+            //if (response is null)
+            //{
+            //    return NotFound();
+            //}
 
             //await _distributedCache.SetObjectAsync(key, response);
 
@@ -78,14 +78,14 @@ namespace Catalog.API.Controllers
         [HttpPut(ApiEndpoints.Items.Update)]
         [ProducesResponseType(typeof(EditItemResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> Update([FromBody] EditItemRequest request, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] EditItemRequest request, CancellationToken cancellationToken = default)
         {
-            var response = await _itemService.EditItemAsync(request, cancellationToken);
+            var response = await _itemService.EditItemAsync(id, request, cancellationToken);
 
-            if(response is null)
-            {
-                return NotFound();
-            }
+            //if(response is null)
+            //{
+            //    return NotFound();
+            //}
 
             return Ok(response);
         }

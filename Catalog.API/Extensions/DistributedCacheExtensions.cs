@@ -1,9 +1,10 @@
-﻿using System.Threading.Tasks;
-using Catalog.Domain.Configurations;
+﻿using Catalog.Domain.Configurations;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using System.Threading.Tasks;
 
 namespace Catalog.API.Extensions
 {
@@ -19,9 +20,14 @@ namespace Catalog.API.Extensions
 
             var settingsTyped = settings.Get<CacheSettings>();
 
-            services.Configure<CacheSettings>(settings);
+            services.Configure<CacheSettings>(settings); //Register CacheSettings with Options Pattern
 
-            services.AddDistributedRedisCache(options => { options.Configuration = settingsTyped.ConnectionString; });
+           //public MyService(IOptions<CacheSettings> options)
+           //{
+           //    var conn = options.Value.ConnectionString;
+           //}
+
+           services.AddDistributedRedisCache(options => { options.Configuration = settingsTyped.ConnectionString; });
 
             return services;
         }
