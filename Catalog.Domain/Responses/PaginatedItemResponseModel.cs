@@ -24,4 +24,11 @@ namespace Catalog.Domain.Responses
 
         public IEnumerable<TEntity> Items { get; }
     }
+
+    public enum SortOrder
+    {
+        Unsorted,
+        Ascending,
+        Descending
+    }
 }
