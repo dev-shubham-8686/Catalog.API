@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -23,20 +23,5 @@ namespace Catalog.Domain.Entities
         public Guid? ArtistId { get; set; }
 
         public bool? IsInactive { get; set; }
-
-        //public Price? Price { get; set; }
-
-        //public void setPrice(Price price)
-        //{
-        //    if (price.Amount.HasValue && !string.IsNullOrEmpty(price.Currency))
-        //    {
-        //        Price = $"{price.Amount.Value}:{price.Currency}";
-        //    }
-        //    else
-        //    {
-        //        Price = null;
-        //    }
-        //}
-
     }
 }

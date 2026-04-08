@@ -1,5 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Catalog.API.Extensions;
 using System.Net;
 
 namespace Catalog.API.Filters
@@ -31,7 +32,13 @@ namespace Catalog.API.Filters
                     context.Exception,
                     context.Exception.Message);
 
-                var json = new JsonErrorPayload { EventId = eventId.Id, DetailedMessage = context.Exception };
+                var json = new JsonErrorPayload
+                {
+                    EventId = eventId.Id,
+                    DetailedMessage = (_env.IsDevelopment() || _env.IsIntegration())
+                        ? context.Exception
+                        : "An unexpected error occurred."
+                };
                 var exceptionObject = new ObjectResult(json) { StatusCode = 500 };
 
                 context.Result = exceptionObject;

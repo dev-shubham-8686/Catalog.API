@@ -1,4 +1,4 @@
-﻿using Catalog.API.Extensions;
+using Catalog.API.Extensions;
 using Catalog.Domain.Responses.Item;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
@@ -26,11 +26,18 @@ namespace Catalog.API.Filters
             if (!context.ActionArguments.ContainsKey("id"))
             {
                 await next();
+                return;
             }
 
-            var actionName = (string)context.RouteData.Values["action"];
-            var controllerName = (string)context.RouteData.Values["controller"];
+            var actionName = context.RouteData.Values["action"] as string;
+            var controllerName = context.RouteData.Values["controller"] as string;
             var id = context.ActionArguments["id"];
+
+            if (string.IsNullOrWhiteSpace(actionName) || string.IsNullOrWhiteSpace(controllerName))
+            {
+                await next();
+                return;
+            }
 
             var key = $"{controllerName}.{actionName}.{id}";
 
@@ -47,7 +54,10 @@ namespace Catalog.API.Filters
 
             if (resultContext.Result is OkObjectResult resultResponse && resultResponse.StatusCode == 200)
             {
-                await _distributedCache.SetObjectAsync(key, resultResponse.Value, _options);
+                if (resultResponse.Value != null)
+                {
+                    await _distributedCache.SetObjectAsync(key, resultResponse.Value, _options);
+                }
             }
         }
     }

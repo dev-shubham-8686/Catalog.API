@@ -140,6 +140,7 @@ app.UseHttpsRedirection();
 
 //app.UseSwaggerUi();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseResponseCaching();

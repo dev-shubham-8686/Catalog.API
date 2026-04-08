@@ -1,4 +1,4 @@
-﻿using Catalog.Domain.Configurations;
+using Catalog.Domain.Configurations;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,7 +27,13 @@ namespace Catalog.API.Extensions
            //    var conn = options.Value.ConnectionString;
            //}
 
-           services.AddDistributedRedisCache(options => { options.Configuration = settingsTyped.ConnectionString; });
+            var connectionString = settingsTyped?.ConnectionString;
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                throw new InvalidOperationException("CacheSettings:ConnectionString is required to enable Redis distributed cache.");
+            }
+
+            services.AddDistributedRedisCache(options => { options.Configuration = connectionString; });
 
             return services;
         }
