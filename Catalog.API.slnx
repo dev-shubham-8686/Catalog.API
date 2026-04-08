@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/helpers/">
+    <Project Path="Identity.Api/Identity.Api.csproj" Id="a6044434-9ff1-484e-ae28-2d80c727e5f4" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="Catalog.API/Catalog.API.csproj" Id="f06226c0-f1e8-4ff0-b39e-15cab748d235" />
     <Project Path="Catalog.Client/Catalog.Client.csproj" Id="e15e0dea-8a41-4436-8c19-68f51623d986" />
