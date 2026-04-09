@@ -1,6 +1,24 @@
-@Identity.Api_HostAddress = http://localhost:5105
+# @Identity.Api_HostAddress = https://localhost:7036
 
-GET {{Identity.Api_HostAddress}}/weatherforecast/
+### Generate JWT (Identity.Api)
+POST {{Identity.Api_HostAddress}}/token
+Content-Type: application/json
 Accept: application/json
 
+{
+  "userId": "11111111-1111-1111-1111-111111111111",
+  "email": "user@example.com",
+  "customClaims": {
+    "role": "admin",
+    "isEmployee": true
+  }
+}
+
 ###
+
+### Example: use the token against a protected API (paste token below)
+@access_token = paste-token-here
+
+GET http://localhost:5000/weatherforecast/
+Accept: application/json
+Authorization: Bearer {{access_token}}
