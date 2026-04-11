@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Catalog.API.Extensions;
 using System.Net;
 
@@ -7,18 +10,19 @@ namespace Catalog.API.Filters
 {
     public class JsonExceptionAttribute : TypeFilterAttribute
     {
-        public JsonExceptionAttribute() : base(typeof
-            (HttpCustomExceptionFilterImpl))
+        public JsonExceptionAttribute()
+            : base(typeof(HttpCustomExceptionFilter))
         {
         }
 
-        private class HttpCustomExceptionFilterImpl : IExceptionFilter
+        private class HttpCustomExceptionFilter : IExceptionFilter
         {
             private readonly IWebHostEnvironment _env;
-            private readonly ILogger<HttpCustomExceptionFilterImpl> _logger;
+            private readonly ILogger<HttpCustomExceptionFilter> _logger;
 
-            public HttpCustomExceptionFilterImpl(IWebHostEnvironment env,
-                ILogger<HttpCustomExceptionFilterImpl> logger)
+            public HttpCustomExceptionFilter(
+                IWebHostEnvironment env,
+                ILogger<HttpCustomExceptionFilter> logger)
             {
                 _env = env;
                 _logger = logger;
@@ -28,21 +32,26 @@ namespace Catalog.API.Filters
             {
                 var eventId = new EventId(context.Exception.HResult);
 
-                _logger.LogError(eventId,
+                _logger.LogError(
+                    eventId,
                     context.Exception,
                     context.Exception.Message);
 
                 var json = new JsonErrorPayload
                 {
                     EventId = eventId.Id,
-                    DetailedMessage = (_env.IsDevelopment() || _env.IsIntegration())
-                        ? context.Exception
-                        : "An unexpected error occurred."
+                    DetailedMessage =
+                        _env.IsDevelopment() || _env.IsIntegration()
+                            ? context.Exception.ToString()
+                            : "An unexpected error occurred."
                 };
-                var exceptionObject = new ObjectResult(json) { StatusCode = 500 };
 
-                context.Result = exceptionObject;
-                context.HttpContext.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                context.Result = new ObjectResult(json)
+                {
+                    StatusCode = StatusCodes.Status500InternalServerError
+                };
+
+                context.ExceptionHandled = true;
             }
         }
     }

@@ -11,7 +11,7 @@ namespace Catalog.API.Controllers
 {
     
     [ApiController]
-    //[JsonException]
+    [JsonException]
     public class ItemController : ControllerBase
     {
         private readonly IItemService _itemService;
