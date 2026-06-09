@@ -106,17 +106,18 @@ builder.Services
         .AddCheck<RedisCacheHealthCheck>("cache_health_check")
         .AddSqlServer(config.GetSection("DataSource:ConnectionString").Value!);
 
-void ExecuteMigrations(IApplicationBuilder app,
-         IWebHostEnvironment env)
+void ExecuteMigrations(IApplicationBuilder app, IConfiguration configuration)
 {
-    if (env.IsDevelopment() || env.IsIntegration()) return;
+    var autoMigrate = configuration.GetValue("Database:AutoMigrate", defaultValue: true);
+    if (!autoMigrate) return;
 
     var retry = Policy.Handle<SqlException>()
         .WaitAndRetry(new TimeSpan[]
         {
-                    TimeSpan.FromSeconds(2),
-                    TimeSpan.FromSeconds(6),
-                    TimeSpan.FromSeconds(12)
+            TimeSpan.FromSeconds(2),
+            TimeSpan.FromSeconds(6),
+            TimeSpan.FromSeconds(12),
+            TimeSpan.FromSeconds(24)
         });
 
     retry.Execute(() => app.ApplicationServices.GetService<CatalogContext>()!.Database.Migrate());
@@ -132,7 +133,7 @@ if (app.Environment.IsDevelopment() || app.Environment.IsIntegration())
     app.UseDeveloperExceptionPage();
 }
 
-ExecuteMigrations(app, app.Environment);
+ExecuteMigrations(app, config);
 
 app.UseHttpsRedirection();
 

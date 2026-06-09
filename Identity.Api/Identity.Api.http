@@ -17,8 +17,8 @@ Accept: application/json
 ###
 
 ### Example: use the token against a protected API (paste token below)
-@access_token = paste-token-here
+# @access_token = paste-token-here
 
-GET http://localhost:5000/weatherforecast/
-Accept: application/json
-Authorization: Bearer {{access_token}}
+# GET http://localhost:5000/weatherforecast/
+# Accept: application/json
+# Authorization: Bearer {{access_token}}
