@@ -13,4 +13,20 @@
   <Folder Name="/tests/">
     <Project Path="Catalog.Infrastructure.Tests/Catalog.Infrastructure.Tests.csproj" Id="b0d56977-021d-43a1-b10f-b625406f277d" />
   </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path="README.md" />
+    <File Path="DOCKER_COMMANDS.md" />
+    <File Path="docker-compose.yml" />
+  </Folder>
+  <Folder Name="/containers/api/">
+    <File Path="containers/api/Dockerfile" />
+    <File Path="containers/api/api.env" />
+  </Folder>
+  <Folder Name="/containers/db/">
+    <File Path="containers/db/db.env" />
+  </Folder>
+  <Folder Name="/containers/identity/">
+    <File Path="containers/identity/Dockerfile" />
+    <File Path="containers/identity/identity.env" />
+  </Folder>
 </Solution>
