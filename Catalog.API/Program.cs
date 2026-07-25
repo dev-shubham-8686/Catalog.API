@@ -102,9 +102,20 @@ builder.Services
 builder.Services.AddEventBus(config);
 
 builder.Services
-        .AddHealthChecks()
-        .AddCheck<RedisCacheHealthCheck>("cache_health_check")
-        .AddSqlServer(config.GetSection("DataSource:ConnectionString").Value!);
+    .AddHealthChecks()
+    // --- Liveness (tag: live) -----------------------------------
+    // Confirms the process is running; orchestrators use this to
+    // decide whether to restart the container.
+    .AddCheck<SelfHealthCheck>("self", tags: ["live"])
+    // --- Readiness (tag: ready) ---------------------------------
+    // All external dependencies must be reachable before traffic
+    // is routed to this instance.
+    .AddSqlServer(
+        config.GetSection("DataSource:ConnectionString").Value!,
+        name: "sqlserver",
+        tags: ["ready"])
+    .AddCheck<RedisCacheHealthCheck>("redis", tags: ["ready"])
+    .AddCheck<RabbitMqHealthCheck>("rabbitmq", tags: ["ready"]);
 
 void ExecuteMigrations(IApplicationBuilder app, IConfiguration configuration)
 {
@@ -120,7 +131,11 @@ void ExecuteMigrations(IApplicationBuilder app, IConfiguration configuration)
             TimeSpan.FromSeconds(24)
         });
 
-    retry.Execute(() => app.ApplicationServices.GetService<CatalogContext>()!.Database.Migrate());
+    retry.Execute(() =>
+    {
+        using var scope = app.ApplicationServices.CreateScope();
+        scope.ServiceProvider.GetRequiredService<CatalogContext>().Database.Migrate();
+    });
 }
 
 var app = builder.Build();
@@ -146,7 +161,22 @@ app.UseAuthorization();
 
 app.UseResponseCaching();
 
-app.UseHealthChecks("/health");
+// --- Health-check endpoints (publicly accessible, no auth required) ---
+//
+// GET /health       → full detail — all checks, used by APM / dashboards
+// GET /health/live  → liveness    — only 'live' tagged checks (is the process alive?)
+// GET /health/ready → readiness   — only 'ready' tagged checks (can it serve traffic?)
+app.MapHealthChecks(
+    ApiEndpoints.Health.Full,
+    HealthCheckResponseWriter.DetailedOptions());
+
+app.MapHealthChecks(
+    ApiEndpoints.Health.Liveness,
+    HealthCheckResponseWriter.DetailedOptions("live"));
+
+app.MapHealthChecks(
+    ApiEndpoints.Health.Readiness,
+    HealthCheckResponseWriter.DetailedOptions("ready"));
 
 app.UseMiddleware<ResponseTimeMiddlewareAsync>();
 

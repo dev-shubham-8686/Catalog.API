@@ -1,6 +1,85 @@
-version: "3.7"
+version: "3.9"
+
+# ---------------------------------------------------------------------------
+# Named volumes – data persisted across container restarts
+# ---------------------------------------------------------------------------
+volumes:
+  mssql_data:
+  rabbitmq_data:
+  redis_data:
+
 services:
 
+  # ── SQL Server ─────────────────────────────────────────────────────────────
+  catalog_db:
+    container_name: catalog_db
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    env_file:
+      - containers/db/db.env
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql_data:/var/opt/mssql
+    networks:
+      - my_network
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "P@ssw0rd" -Q "SELECT 1" -No
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # ── RabbitMQ ───────────────────────────────────────────────────────────────
+  catalog_esb:
+    container_name: catalog_esb
+    image: rabbitmq:3-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"  # Management UI  →  http://localhost:15672
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - my_network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ── Redis ──────────────────────────────────────────────────────────────────
+  catalog_cache:
+    container_name: catalog_cache
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - my_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Identity API ───────────────────────────────────────────────────────────
+  identity_api:
+    container_name: identity_api
+    build:
+      context: .
+      dockerfile: containers/identity/Dockerfile
+    env_file:
+      - containers/identity/identity.env
+    ports:
+      - "5105:5105"
+    networks:
+      - my_network
+
+  # ── Catalog API ────────────────────────────────────────────────────────────
   catalog_api:
     container_name: catalog_api
     build:
@@ -8,42 +87,18 @@ services:
       dockerfile: containers/api/Dockerfile
     env_file:
       - containers/api/api.env
-    networks:
-      - my_network
     ports:
-      - 5000:5000
+      - "5000:5000"
     depends_on:
-      - catalog_db
-      - catalog_esb
-      - catalog_cache
-
-  catalog_db:
-    container_name: catalog_db
-    ports:
-      - "1433:1433"
-    image: mcr.microsoft.com/mssql/server:2022-latest
+      catalog_db:
+        condition: service_healthy
+      catalog_esb:
+        condition: service_healthy
+      catalog_cache:
+        condition: service_healthy
     networks:
       - my_network
-    env_file:
-      - containers/db/db.env
-      
-  catalog_esb:
-    container_name: catalog_esb
-    image: rabbitmq:3-management-alpine
-    ports:
-      - 5672:5672
-      - 15672:15672
-    networks:
-      - my_network  
-      
-  catalog_cache:
-      container_name: catalog_cache
-      image: redis:alpine
-      ports:
-        - "6379:6379"
-      networks:
-        - my_network
-      
+
 networks:
   my_network:
     driver: bridge

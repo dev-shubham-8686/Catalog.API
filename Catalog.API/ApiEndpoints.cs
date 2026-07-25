@@ -20,5 +20,19 @@
             //public const string AddRating = $"{Base}/{{id:guid}}/ratings";
             //public const string DeleteRating = $"{Base}/{{id:guid}}/ratings";
         }
+
+        /// <summary>
+        /// Health-check route constants.
+        ///
+        /// /health       — All checks with full detail (monitoring dashboards, APM).
+        /// /health/live  — Liveness probe  (Kubernetes, load balancer restart decision).
+        /// /health/ready — Readiness probe (Kubernetes, load balancer traffic routing).
+        /// </summary>
+        public static class Health
+        {
+            public const string Full     = "health";
+            public const string Liveness = "health/live";
+            public const string Readiness = "health/ready";
+        }
     }
 }
