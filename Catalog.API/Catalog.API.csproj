@@ -22,6 +22,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Catalog.InfrastructureSP\Catalog.InfrastructureSP.csproj" />
     <ProjectReference Include="..\Catalog.Infrastructure\Catalog.Infrastructure.csproj" />
+    <ProjectReference Include="..\Identity.Authentication\Identity.Authentication.csproj" />
   </ItemGroup>
 
 </Project>

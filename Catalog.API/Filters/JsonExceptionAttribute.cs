@@ -4,6 +4,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Catalog.API.Extensions;
+using Catalog.Domain.Responses;
+using FluentValidation;
 using System.Net;
 
 namespace Catalog.API.Filters
@@ -30,6 +32,28 @@ namespace Catalog.API.Filters
 
             public void OnException(ExceptionContext context)
             {
+                // Handle FluentValidation exceptions
+                if (context.Exception is ValidationException validationException)
+                {
+                    var validationFailureResponse = new ValidationFailureResponse
+                    {
+                        Errors = validationException.Errors.Select(x => new ValidationResponse
+                        {
+                            PropertyName = x.PropertyName,
+                            Message = x.ErrorMessage
+                        })
+                    };
+
+                    context.Result = new ObjectResult(validationFailureResponse)
+                    {
+                        StatusCode = StatusCodes.Status400BadRequest
+                    };
+
+                    context.ExceptionHandled = true;
+                    return;
+                }
+
+                // Handle other exceptions
                 var eventId = new EventId(context.Exception.HResult);
 
                 _logger.LogError(

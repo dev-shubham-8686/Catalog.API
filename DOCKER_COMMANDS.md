@@ -203,10 +203,19 @@ docker compose logs -f identity_api
 docker compose up -d catalog_db catalog_cache catalog_esb
 ```
 
-### Generate a JWT token via Identity API
+### Register a user and get a JWT via Catalog API
+Catalog API now hosts real ASP.NET Core Identity authentication (via the `Identity.Authentication`
+class library) — register/login runs against the `AspNetUsers`/`AspNetRoles` tables in `catalog_db`,
+not the `identity_api` stub. `identity_api` still exists as a standalone throwaway token-minting
+stub and is unrelated to these endpoints.
 ```powershell
-# Replace values as needed
-Invoke-RestMethod -Method Post -Uri http://localhost:5105/token `
+# Register
+Invoke-RestMethod -Method Post -Uri http://localhost:5000/api/auth/register `
   -ContentType "application/json" `
-  -Body '{"email":"admin@test.com","userId":"1","customClaims":{"admin":"true"}}'
+  -Body '{"email":"admin@test.com","password":"P@ssw0rd123!"}'
+
+# Login -> returns { accessToken, expiresAtUtc }
+Invoke-RestMethod -Method Post -Uri http://localhost:5000/api/auth/login `
+  -ContentType "application/json" `
+  -Body '{"email":"admin@test.com","password":"P@ssw0rd123!"}'
 ```

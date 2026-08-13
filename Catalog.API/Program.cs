@@ -7,15 +7,14 @@ using Catalog.Domain.Repositories;
 using Catalog.Infrastructure;
 using Catalog.Infrastructure.Extensions;
 using Catalog.Infrastructure.Repositories;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authentication.OAuth;
+using Identity.Authentication;
+using Identity.Authentication.Data;
+using Identity.Authentication.Extensions;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Polly;
-using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,32 +22,16 @@ var config = builder.Configuration;
 
 // Add services to the container.
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddApplicationPart(typeof(IdentityLibraryMarker).Assembly);
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddCatalogContext(config.GetSection("DataSource:ConnectionString").Value!);
 builder.Services.AddSqlConnectionFactory(config.GetSection("DataSource:ConnectionString").Value!);
 
-builder.Services.AddAuthentication(x =>
-{
-    x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    x.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-}).AddJwtBearer(x =>
-{
-    x.TokenValidationParameters = new TokenValidationParameters
-    {
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(config["Jwt:Key"]!)),
-        ValidateIssuerSigningKey = true,
-        ValidateLifetime = true,
-        ValidIssuer = config["Jwt:Issuer"],
-        ValidAudience = config["Jwt:Audience"],
-        ValidateIssuer = true,
-        ValidateAudience = true
-    };
-});
+builder.Services.AddIdentityAuthentication(config);
+builder.Services.AddJwtAuthentication(config);
 
 builder.Services.AddSwaggerGen(c =>
 {
@@ -135,6 +118,7 @@ void ExecuteMigrations(IApplicationBuilder app, IConfiguration configuration)
     {
         using var scope = app.ApplicationServices.CreateScope();
         scope.ServiceProvider.GetRequiredService<CatalogContext>().Database.Migrate();
+        scope.ServiceProvider.GetRequiredService<IdentityDataContext>().Database.Migrate();
     });
 }
 
