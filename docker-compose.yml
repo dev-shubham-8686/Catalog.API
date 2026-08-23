@@ -67,17 +67,17 @@ services:
       retries: 5
 
   # ── Identity API ───────────────────────────────────────────────────────────
-  identity_api:
-    container_name: identity_api
-    build:
-      context: .
-      dockerfile: containers/identity/Dockerfile
-    env_file:
-      - containers/identity/identity.env
-    ports:
-      - "5105:5105"
-    networks:
-      - my_network
+  # identity_api:
+  #   container_name: identity_api
+  #   build:
+  #     context: .
+  #     dockerfile: containers/identity/Dockerfile
+  #   env_file:
+  #     - containers/identity/identity.env
+  #   ports:
+  #     - "5105:5105"
+  #   networks:
+  #     - my_network
 
   # ── Catalog API ────────────────────────────────────────────────────────────
   catalog_api:

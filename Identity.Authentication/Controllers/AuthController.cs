@@ -2,9 +2,11 @@ using Identity.Authentication.Contracts;
 using Identity.Authentication.Endpoints;
 using Identity.Authentication.Entities;
 using Identity.Authentication.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Identity.Authentication.Controllers
 {
@@ -67,6 +69,24 @@ namespace Identity.Authentication.Controllers
             var token = await _tokenService.GenerateTokenAsync(user, roles, cancellationToken);
 
             return Ok(new LoginResponse(token.AccessToken, token.ExpiresAtUtc));
+        }
+
+        [HttpGet(AuthEndpoints.Auth.Users)]
+        //[Authorize(Roles = Roles.Admin)]
+        [ProducesResponseType(typeof(GetUsersResponse), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetUsers([FromQuery] int pageSize = 10, [FromQuery] int pageIndex = 0, CancellationToken cancellationToken = default)
+        {
+            var query = _userManager.Users.OrderBy(u => u.Email);
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var users = await query
+                .Skip(pageIndex * pageSize)
+                .Take(pageSize)
+                .Select(u => new UserResponse(u.Id, u.Email!))
+                .ToListAsync(cancellationToken);
+
+            return Ok(new GetUsersResponse(users, totalCount));
         }
     }
 }

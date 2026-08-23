@@ -10,6 +10,7 @@ namespace Identity.Authentication.Endpoints
 
             public const string Register = $"{Base}/register";
             public const string Login = $"{Base}/login";
+            public const string Users = $"{Base}/users";
         }
     }
 }

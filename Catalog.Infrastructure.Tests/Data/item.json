@@ -4,7 +4,7 @@
         "Name": "DAMN.",
         "Description": "DAMN. by Kendrick Lamar",
         "LabelName": "TDE, Top Dawg Entertainment",
-        "Price": "34.5:EUR",
+        "Price": "34.5",
         //"Price": {
         //    "Amount": 34.5,
         //    "Currency": "EUR"
@@ -23,7 +23,7 @@
     "Name": "GOOD KID, m.A.A.d CITY",
     "Description": "GOOD KID, m.A.A.d CITY. by Kendrick Lamar",
     "LabelName": "TDE, Top Dawg Entertainment",
-    "Price": "23.5:EUR",
+    "Price": "23.5",
     //"Price": {
     //    "Amount": 23.5,
     //    "Currency": "EUR"
@@ -42,7 +42,7 @@
     "Name": "Untitled",
     "Description": "Untitled by Kendrick Lamar",
     "LabelName": "TDE, Top Dawg Entertainment",
-    "Price": "15.5:EUR",
+    "Price": "15.5",
     //"Price": {
     //    "Amount": 15.5,
     //    "Currency": "EUR"
@@ -62,7 +62,7 @@
     "Name": "Malibu",
     "Description": "Malibu. by Anderson Paak",
     "LabelName": "Steel Wool/OBE/Art Club",
-    "Price": "23.5:EUR",
+    "Price": "23.5",
     //"Price": {
     //    "Amount": 23.5,
     //    "Currency": "EUR"

@@ -15,11 +15,11 @@ namespace Catalog.Domain.Services
 
         Task<PaginatedItemResponseModel<GetItemResponse>> GetItemsAsync(int pageSize, int pageIndex, CancellationToken cancellationToken = default);
 
-        Task<GetItemResponse> GetItemAsync(GetItemRequest request, CancellationToken cancellationToken = default);
+        Task<GetItemResponse?> GetItemAsync(GetItemRequest request, CancellationToken cancellationToken = default);
 
-        Task<AddItemResponse> AddItemAsync(AddItemRequest request, CancellationToken cancellationToken = default);
+        Task<AddItemResponse?> AddItemAsync(AddItemRequest request, CancellationToken cancellationToken = default);
 
-        Task<EditItemResponse> EditItemAsync(Guid id, EditItemRequest request, CancellationToken cancellationToken = default);
+        Task<EditItemResponse?> EditItemAsync(Guid id, EditItemRequest request, CancellationToken cancellationToken = default);
 
         Task DeleteItemAsync(DeleteItemRequest request, CancellationToken cancellationToken = default);
 

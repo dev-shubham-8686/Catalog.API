@@ -21,8 +21,7 @@ namespace Catalog.Infrastructure.Repositories
         }
         public ItemRepository(CatalogContext context)
         {
-            _context = context ?? throw new
-             ArgumentNullException(nameof(context));
+            _context = context;
         }
         public async Task<IEnumerable<Item>> GetAsync(CancellationToken cancellationToken = default)
         {
