@@ -7,6 +7,7 @@ volumes:
   mssql_data:
   rabbitmq_data:
   redis_data:
+  registry_data:
 
 services:
 
@@ -96,6 +97,25 @@ services:
         condition: service_healthy
       catalog_cache:
         condition: service_healthy
+    networks:
+      - my_network
+
+  # ── Local Container Registry ─────────────────────────────────────────────
+  # Run scripts/setup-registry.ps1 once to generate containers/registry/auth/htpasswd
+  # before starting this service. See DOCKER_COMMANDS.md for login/push/pull usage.
+  registry:
+    container_name: catalog_registry
+    image: registry:2
+    environment:
+      REGISTRY_AUTH: htpasswd
+      REGISTRY_AUTH_HTPASSWD_REALM: "Catalog Registry"
+      REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
+      REGISTRY_STORAGE_DELETE_ENABLED: "true"
+    ports:
+      - "5001:5000"
+    volumes:
+      - registry_data:/var/lib/registry
+      - ./containers/registry/auth:/auth:ro
     networks:
       - my_network
 

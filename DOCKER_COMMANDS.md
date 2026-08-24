@@ -13,6 +13,7 @@ All commands are run from the **repo root** (`Catalog.API/`) where `docker-compo
 | Redis | `catalog_cache` | `redis:alpine` | `6379` |
 | Identity API | `identity_api` | build: `containers/identity/Dockerfile` | `5105` |
 | Catalog API | `catalog_api` | build: `containers/api/Dockerfile` | `5000` |
+| Container Registry | `catalog_registry` | `registry:2` | `5001` (maps to container's `5000`) |
 
 ---
 
@@ -174,6 +175,97 @@ docker volume rm catalog_api_redis_data
 | RabbitMQ Management UI | http://localhost:15672 (guest / guest) |
 | SQL Server | `Server=localhost,1433` |
 | Redis | `localhost:6379` |
+| Container Registry | `localhost:5001` |
+
+---
+
+## Container Registry
+
+A self-hosted Docker registry (`registry:2`) for pushing/pulling this project's images locally,
+without depending on Docker Hub or a cloud registry. It requires basic-auth login (no anonymous
+push/pull) and persists images in the `registry_data` volume.
+
+**Local-only design note:** this setup serves plain HTTP, not HTTPS. Docker refuses to talk to a
+non-TLS registry unless the host is explicitly marked "insecure", which is fine for `localhost`
+but is **not** how you'd run a shared/production registry — there, TLS is mandatory and normally
+terminated by a reverse proxy (nginx/Traefik) with a real certificate (internal CA or Let's
+Encrypt) in front of the registry container, which never talks plain HTTP itself. Auth (htpasswd)
+is still enforced here so this isn't a wide-open registry, just an unencrypted one on localhost.
+
+### One-time setup
+```powershell
+# Generates containers/registry/auth/htpasswd (gitignored — regenerate per machine/rotate as needed)
+./scripts/setup-registry.ps1
+
+# Tell Docker Desktop to trust this registry over plain HTTP:
+# Settings → Docker Engine → add "localhost:5001" to "insecure-registries", then Apply & Restart:
+#   { "insecure-registries": ["localhost:5001"] }
+```
+
+### Start the registry
+```powershell
+docker compose up -d registry
+```
+
+### Login, tag, push, pull
+```powershell
+docker login localhost:5001 -u registry-user -p RegistryP@ss1
+
+# Tag an image already built by `docker compose build catalog_api`
+docker tag store-catalog_api:latest localhost:5001/catalog-api:1.0.0
+
+docker push localhost:5001/catalog-api:1.0.0
+
+# From any machine that can reach this host and has logged in:
+docker pull localhost:5001/catalog-api:1.0.0
+```
+
+### Bumping the version automatically
+There's no auto-increment in Docker or the registry — you (or CI) decide the next tag. To avoid
+tracking it by hand, `bump-and-push.ps1` looks up the highest existing semver tag for a repo,
+bumps it, and pushes:
+```powershell
+# Bumps the patch version (1.0.1 -> 1.0.2) using store-catalog_api:latest
+./scripts/bump-and-push.ps1
+
+# Bumps the minor version instead (1.0.2 -> 1.1.0, patch resets to 0)
+./scripts/bump-and-push.ps1 -Bump Minor
+
+# -Bump Major resets minor and patch to 0 too
+./scripts/bump-and-push.ps1 -Repo identity-api -Image store-identity_api:latest -Bump Major
+```
+
+### Inspect what's stored
+`docker images` only shows your local cache — it has no idea what's actually sitting in the
+registry. To see that, you query the registry's own HTTP API:
+```powershell
+# List repositories
+curl -u registry-user:RegistryP@ss1 http://localhost:5001/v2/_catalog
+
+# List tags for a repository
+curl -u registry-user:RegistryP@ss1 http://localhost:5001/v2/catalog-api/tags/list
+
+# Or list every repository:tag in one shot
+./scripts/list-registry-images.ps1
+```
+
+### Garbage collection
+Deleting a tag via the API only removes the manifest reference — the underlying layers stay on
+disk until you run garbage collection:
+```powershell
+docker compose exec registry bin/registry garbage-collect /etc/docker/registry/config.yml
+```
+
+### Real-world best practices (applies beyond this local setup too)
+- **Never push/deploy `:latest`** — tag with a git SHA or semver (`catalog-api:1.4.2`), so a
+  running container's image is always traceable back to a commit.
+- **Scan images before pushing** — Trivy or Grype in CI, fail the build on high/critical CVEs.
+- **Least-privilege credentials** — separate push (CI-only) vs pull (runtime-only) accounts;
+  production nodes should never hold push rights.
+- **Retention/GC policy** — untagged manifests accumulate; schedule `garbage-collect` (or use a
+  managed registry's built-in retention policy) so storage doesn't grow unbounded.
+- **TLS always, off localhost** — see the design note above; `insecure-registries` is a local
+  dev/learning shortcut, not something to carry into a shared environment.
 
 ---
 
