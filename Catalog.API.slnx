@@ -9,6 +9,8 @@
     <Project Path="Catalog.Domain/Catalog.Domain.csproj" Id="314c0ffe-da0d-4ee3-b58d-eef68b5d131e" />
     <Project Path="Catalog.Infrastructure/Catalog.Infrastructure.csproj" Id="186877c2-93c8-4517-8385-92f46a2c883d" />
     <Project Path="Catalog.InfrastructureSP/Catalog.InfrastructureSP.csproj" Id="49504d18-454a-4692-8946-e755e10bf895" />
+    <Project Path="Catalog.Worker/Catalog.Worker.csproj" Id="9d2e5f4a-1b3c-4d6e-8f7a-0c9b2d3e4f5a" />
+    <Project Path="EventBus/EventBus.csproj" Id="3b8f9a10-6c2d-4a6e-9e1a-2f5c7d8e9b1a" />
     <Project Path="Identity.Authentication/Identity.Authentication.csproj" Id="7c9e6679-7425-40de-944b-e07fc1f90ae7" />
   </Folder>
   <Folder Name="/tests/">
@@ -29,5 +31,9 @@
   <Folder Name="/containers/identity/">
     <File Path="containers/identity/Dockerfile" />
     <File Path="containers/identity/identity.env" />
+  </Folder>
+  <Folder Name="/containers/worker/">
+    <File Path="containers/worker/Dockerfile" />
+    <File Path="containers/worker/worker.env" />
   </Folder>
 </Solution>

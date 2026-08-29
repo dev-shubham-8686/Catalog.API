@@ -1,3 +1,4 @@
+using Catalog.Contracts.Events;
 using Catalog.Domain.Entities;
 using Catalog.Domain.Logging;
 using Catalog.Domain.Mappers;
@@ -5,6 +6,7 @@ using Catalog.Domain.Repositories;
 using Catalog.Domain.Requests.Item;
 using Catalog.Domain.Responses;
 using Catalog.Domain.Responses.Item;
+using EventBus.Outbox;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
 
@@ -13,11 +15,13 @@ namespace Catalog.Domain.Services
     public class ItemService : IItemService
     {
         private readonly IItemRepository _itemRepository;
+        private readonly IOutbox _outbox;
         private readonly ILogger<ItemService> _logger;
         private readonly IValidator<AddItemRequest> _addItemRequestValidator;
-        public ItemService(IItemRepository itemRepository, ILogger<ItemService> logger, IValidator<AddItemRequest> addItemRequestValidator)
+        public ItemService(IItemRepository itemRepository, IOutbox outbox, ILogger<ItemService> logger, IValidator<AddItemRequest> addItemRequestValidator)
         {
             _itemRepository = itemRepository;
+            _outbox = outbox;
             _logger = logger;
             _addItemRequestValidator = addItemRequestValidator;
         }
@@ -30,6 +34,14 @@ namespace Catalog.Domain.Services
             var item = request.MapToItem();
 
             var result = await _itemRepository.AddAsync(item, cancellationToken);
+
+            await _outbox.EnqueueAsync(new ItemCreatedIntegrationEvent
+            {
+                ItemId = result.Id,
+                Name = result.Name ?? string.Empty,
+                Price = result.Price
+            }, cancellationToken);
+
             var modifiedRecords = await _itemRepository.UnitOfWork.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation(Logging.Events.Add, Messages.NumberOfRecordAffected_modifiedRecords, modifiedRecords);
@@ -43,16 +55,16 @@ namespace Catalog.Domain.Services
         {
             ArgumentNullException.ThrowIfNull(request);
 
-            //var existingRecord = await _itemRepository.FindItemAsync(request.Id, cancellationToken);
-
             int modifiedRecords = 0;
 
-            //if (existingRecord != null)
-            //{
-                await _itemRepository.DeleteAsync(request.Id, cancellationToken);
+            await _itemRepository.DeleteAsync(request.Id, cancellationToken);
 
-                modifiedRecords = await _itemRepository.UnitOfWork.SaveChangesAsync(cancellationToken);
-            //}
+            await _outbox.EnqueueAsync(new ItemDeletedIntegrationEvent
+            {
+                ItemId = request.Id
+            }, cancellationToken);
+
+            modifiedRecords = await _itemRepository.UnitOfWork.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation(Logging.Events.Delete, Messages.NumberOfRecordAffected_modifiedRecords,
                 modifiedRecords);
@@ -70,6 +82,13 @@ namespace Catalog.Domain.Services
             existingRecord.Description = request.Description;
 
             var result =  _itemRepository.Update(existingRecord, cancellationToken);
+
+            await _outbox.EnqueueAsync(new ItemUpdatedIntegrationEvent
+            {
+                ItemId = result.Id,
+                Name = result.Name ?? string.Empty,
+                Description = result.Description
+            }, cancellationToken);
 
             var modifiedRecords = await _itemRepository.UnitOfWork.SaveChangesAsync(cancellationToken);
 

@@ -1,6 +1,7 @@
 ﻿using Catalog.Domain.Entities;
 using Catalog.Domain.Repositories;
 using Catalog.Infrastructure.SchemaDefinitions;
+using EventBus.Outbox;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -25,6 +26,7 @@ namespace Catalog.Infrastructure
             modelBuilder.ApplyConfiguration(new ItemEntitySchemaDefinition());
             modelBuilder.ApplyConfiguration(new ArtistEntitySchemaConfiguration());
             modelBuilder.ApplyConfiguration(new GenreEntitySchemaConfiguration());
+            modelBuilder.ApplyOutboxConfiguration();
 
             base.OnModelCreating(modelBuilder);
         }

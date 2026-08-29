@@ -99,6 +99,23 @@ services:
     networks:
       - my_network
 
+  # ── Catalog Worker (event consumers) ────────────────────────────────────────
+  # No fixed container_name/host port so it can be horizontally scaled, e.g.:
+  #   docker compose up -d --scale catalog_worker=3
+  catalog_worker:
+    build:
+      context: .
+      dockerfile: containers/worker/Dockerfile
+    env_file:
+      - containers/worker/worker.env
+    depends_on:
+      catalog_db:
+        condition: service_healthy
+      catalog_esb:
+        condition: service_healthy
+    networks:
+      - my_network
+
 networks:
   my_network:
     driver: bridge

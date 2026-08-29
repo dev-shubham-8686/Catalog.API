@@ -28,7 +28,7 @@ builder.Services.AddControllers()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddCatalogContext(config.GetSection("DataSource:ConnectionString").Value!);
-builder.Services.AddSqlConnectionFactory(config.GetSection("DataSource:ConnectionString").Value!);
+//builder.Services.AddSqlConnectionFactory(config.GetSection("DataSource:ConnectionString").Value!);
 
 builder.Services.AddIdentityAuthentication(config);
 builder.Services.AddJwtAuthentication(config);
