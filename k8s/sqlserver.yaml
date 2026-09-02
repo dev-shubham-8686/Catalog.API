@@ -1,0 +1,83 @@
+# Self-contained demo only — real production should use a managed SQL service (e.g. Azure SQL)
+# instead of running SQL Server as a single-replica in-cluster Deployment.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sqlserver-data
+  namespace: catalog
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sqlserver
+  namespace: catalog
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate # single PVC — never run 2 SQL Server pods against the same volume
+  selector:
+    matchLabels:
+      app: sqlserver
+  template:
+    metadata:
+      labels:
+        app: sqlserver
+    spec:
+      containers:
+        - name: sqlserver
+          image: mcr.microsoft.com/mssql/server:2022-latest
+          ports:
+            - containerPort: 1433
+          env:
+            - name: ACCEPT_EULA
+              value: "Y"
+            - name: MSSQL_SA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: catalog-secrets
+                  key: MSSQL_SA_PASSWORD
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "2Gi"
+            limits:
+              cpu: "1"
+              memory: "3Gi"
+          readinessProbe:
+            # `$(VAR)` substitution only applies to container command/args, not probe exec
+            # commands — run through a shell so $MSSQL_SA_PASSWORD actually expands from the
+            # container's real environment instead of being passed to sqlcmd literally.
+            exec:
+              command: ["/bin/sh", "-c", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' -No"]
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 1433
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          volumeMounts:
+            - name: data
+              mountPath: /var/opt/mssql
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: sqlserver-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sqlserver
+  namespace: catalog
+spec:
+  selector:
+    app: sqlserver
+  ports:
+    - port: 1433
+      targetPort: 1433

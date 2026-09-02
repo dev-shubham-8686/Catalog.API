@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalog-worker
+  namespace: catalog
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: catalog-worker
+  template:
+    metadata:
+      labels:
+        app: catalog-worker
+    spec:
+      containers:
+        - name: catalog-worker
+          image: catalog-worker:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5200
+          env:
+            - name: ASPNETCORE_URLS
+              value: "http://+:5200"
+          envFrom:
+            - configMapRef:
+                name: catalog-config
+            - secretRef:
+                name: catalog-secrets
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 5200
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 5200
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            timeoutSeconds: 5
+---
+# ClusterIP Service exists only so probes/metrics tooling have a stable target — catalog-worker
+# takes no inbound application traffic (it's a pure RabbitMQ consumer).
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalog-worker
+  namespace: catalog
+spec:
+  selector:
+    app: catalog-worker
+  ports:
+    - port: 5200
+      targetPort: 5200
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: catalog-worker
+  namespace: catalog
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: catalog-worker
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70

@@ -1,0 +1,26 @@
+# Requires an ingress controller (e.g. ingress-nginx) installed in the cluster.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: catalog-api
+  namespace: catalog
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: catalog.local
+      http:
+        paths:
+          - path: /(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: catalog-api
+                port:
+                  number: 80
+  # TLS is not configured for this local/demo setup. For real production, terminate TLS here
+  # (e.g. cert-manager + Let's Encrypt) instead of serving plain HTTP:
+  # tls:
+  #   - hosts: ["catalog.example.com"]
+  #     secretName: catalog-tls

@@ -19,6 +19,7 @@ namespace EventBus.Publishing
             _factory = new ConnectionFactory
             {
                 HostName = _settings.HostName,
+                Port = _settings.Port,
                 UserName = _settings.User,
                 Password = _settings.Password
             };

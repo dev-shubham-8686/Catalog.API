@@ -1,0 +1,25 @@
+# Non-secret configuration, shared by catalog-api and catalog-worker where applicable.
+# Consumed via `envFrom: configMapRef` — ASP.NET Core binds double-underscore env vars to
+# configuration sections automatically (e.g. EventBus__HostName -> config["EventBus:HostName"]).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: catalog-config
+  namespace: catalog
+data:
+  ASPNETCORE_ENVIRONMENT: "Integration"
+  Database__AutoMigrate: "true"
+
+  CacheSettings__ConnectionString: "redis:6379"
+
+  EventBus__HostName: "rabbitmq"
+  EventBus__ExchangeName: "integration_events"
+  EventBus__ServiceName: "catalog"
+  EventBus__DispatchIntervalSeconds: "5"
+  EventBus__BatchSize: "50"
+  EventBus__PrefetchCount: "20"
+  EventBus__MaxRetryCount: "5"
+
+  Jwt__Issuer: "https://catalog.api.com"
+  Jwt__Audience: "https://catalog.api.com"
+  Jwt__ExpirationMinutes: "60"

@@ -38,6 +38,7 @@ namespace Catalog.API.Controllers
 
         [HttpGet(ApiEndpoints.Items.GetAll)]
         [ProducesResponseType(typeof(PaginatedItemResponseModel<GetItemResponse>), StatusCodes.Status200OK)]
+        [TypeFilter(typeof(RedisListCacheFilter), Arguments = new object[] { 20 })]
         public async Task<IActionResult> GetAll([FromQuery] int pageSize = 10, [FromQuery] int pageIndex = 0, CancellationToken cancellationToken = default)
         {
             var response = await _itemService.GetItemsAsync(pageSize, pageIndex, cancellationToken);

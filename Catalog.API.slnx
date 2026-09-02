@@ -14,6 +14,7 @@
     <Project Path="Identity.Authentication/Identity.Authentication.csproj" Id="7c9e6679-7425-40de-944b-e07fc1f90ae7" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="Catalog.API.IntegrationTests/Catalog.API.IntegrationTests.csproj" Id="5e8f2a1c-4b6d-4e9a-9c3f-1a2b3c4d5e6f" />
     <Project Path="Catalog.Infrastructure.Tests/Catalog.Infrastructure.Tests.csproj" Id="b0d56977-021d-43a1-b10f-b625406f277d" />
   </Folder>
   <Folder Name="/Solution Items/">

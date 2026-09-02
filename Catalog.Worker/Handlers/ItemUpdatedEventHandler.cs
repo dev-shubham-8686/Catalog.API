@@ -1,28 +1,32 @@
+using Catalog.Contracts.Caching;
 using Catalog.Contracts.Events;
 using EventBus;
+using StackExchange.Redis;
 
 namespace Catalog.Worker.Handlers
 {
     public class ItemUpdatedEventHandler : IIntegrationEventHandler<ItemUpdatedIntegrationEvent>
     {
+        private readonly IConnectionMultiplexer _redis;
         private readonly ILogger<ItemUpdatedEventHandler> _logger;
 
-        public ItemUpdatedEventHandler(ILogger<ItemUpdatedEventHandler> logger)
+        public ItemUpdatedEventHandler(IConnectionMultiplexer redis, ILogger<ItemUpdatedEventHandler> logger)
         {
+            _redis = redis;
             _logger = logger;
         }
 
-        public Task HandleAsync(ItemUpdatedIntegrationEvent @event, CancellationToken cancellationToken = default)
+        public async Task HandleAsync(ItemUpdatedIntegrationEvent @event, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation(
                 "Item updated: {ItemId} '{Name}'.",
                 @event.ItemId, @event.Name);
 
-            // Example real-world hook: invalidate the Redis cache entry for this item so the
-            // next read repopulates it from the DB. Not implemented — caching is out of scope
-            // for this pass, see the Roadmap in the event-bus plan.
-
-            return Task.CompletedTask;
+            // Invalidate the cached detail view so the next GET repopulates it from the DB.
+            // GetAll list pages are deliberately NOT invalidated here — they rely on their own
+            // short sliding-expiration TTL (see README's caching section for the rationale).
+            var db = _redis.GetDatabase();
+            await db.KeyDeleteAsync(ItemCacheKeys.Get(@event.ItemId));
         }
     }
 }

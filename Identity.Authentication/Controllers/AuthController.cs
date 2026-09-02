@@ -72,7 +72,7 @@ namespace Identity.Authentication.Controllers
         }
 
         [HttpGet(AuthEndpoints.Auth.Users)]
-        //[Authorize(Roles = Roles.Admin)]
+        [Authorize(Roles = Roles.Admin)]
         [ProducesResponseType(typeof(GetUsersResponse), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetUsers([FromQuery] int pageSize = 10, [FromQuery] int pageIndex = 0, CancellationToken cancellationToken = default)
         {

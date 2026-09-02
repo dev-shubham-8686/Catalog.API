@@ -17,7 +17,8 @@ namespace Catalog.Infrastructure.SchemaDefinitions
             builder.HasKey(k => k.Id);
 
             builder.Property(p => p.Name)
-                .IsRequired();
+                .IsRequired()
+                .HasMaxLength(450); // SQL Server's max nonclustered index key size — required for IX_Items_Name below.
 
             builder.Property(p => p.Description)
                 .IsRequired()
@@ -33,10 +34,11 @@ namespace Catalog.Infrastructure.SchemaDefinitions
                 .WithMany(c => c.Items)
                 .HasForeignKey(k => k.ArtistId);
 
-            builder.Property(x => x.Price);
+            builder.Property(x => x.Price)
+                .HasPrecision(18, 2);
 
-
-
+            // Supports the OrderBy(x => x.Name) used by the paginated GetAll query.
+            builder.HasIndex(x => x.Name);
         }
     }
 }

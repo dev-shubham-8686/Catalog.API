@@ -124,6 +124,23 @@ void ExecuteMigrations(IApplicationBuilder app, IConfiguration configuration)
 
 var app = builder.Build();
 
+// Warm the Redis connection at startup rather than letting it lazily connect on first use.
+// StackExchange.Redis.ConnectionMultiplexer is meant to be a long-lived singleton reused for the
+// process lifetime — connecting once here, while the app isn't yet serving traffic, avoids the
+// connect timing out under load if the very first resolution happened during a request spike
+// (observed during load testing: a timed-out first connect surfaced as request failures and
+// contributed to CPU/thread-pool pressure severe enough to fail the liveness probe). Failure here
+// is non-fatal — the readiness probe already gates traffic on Redis health, and a later request
+// will retry the connection.
+try
+{
+    app.Services.GetRequiredService<StackExchange.Redis.IConnectionMultiplexer>();
+}
+catch (Exception ex)
+{
+    app.Logger.LogWarning(ex, "Could not warm the Redis connection at startup; will retry on first use.");
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment() || app.Environment.IsIntegration())
 {

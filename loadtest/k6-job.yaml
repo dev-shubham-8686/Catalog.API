@@ -1,0 +1,47 @@
+# Runs k6 as a one-shot Job INSIDE the cluster, hitting catalog-api via its ClusterIP Service
+# directly (http://catalog-api). Running in-cluster avoids `kubectl port-forward`, which is a
+# single-stream proxy that would artificially cap throughput far below what the Service can
+# actually handle — it is not a valid way to measure real capacity.
+#
+# The script itself lives in mixed-workload.js and is loaded into a ConfigMap at apply time
+# (see loadtest/README.md) rather than duplicated inline here.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: k6-load-test
+  namespace: catalog
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: k6
+          image: grafana/k6:latest
+          args: ["run", "/scripts/mixed-workload.js"]
+          env:
+            - name: BASE_URL
+              value: "http://catalog-api"
+            - name: TARGET_RPS
+              value: "5000"
+            - name: MAX_VUS
+              value: "3000"
+            - name: RAMP_DURATION
+              value: "30s"
+            - name: SUSTAIN_DURATION
+              value: "60s"
+          resources:
+            requests:
+              cpu: "1"
+              memory: "512Mi"
+            limits:
+              cpu: "2"
+              memory: "1Gi"
+          volumeMounts:
+            - name: script
+              mountPath: /scripts
+      volumes:
+        - name: script
+          configMap:
+            name: k6-script

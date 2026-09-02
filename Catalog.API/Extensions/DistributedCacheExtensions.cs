@@ -1,9 +1,11 @@
+using Catalog.API.Caching;
 using Catalog.Domain.Configurations;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using StackExchange.Redis;
 using System.Threading.Tasks;
 
 namespace Catalog.API.Extensions
@@ -33,7 +35,22 @@ namespace Catalog.API.Extensions
                 throw new InvalidOperationException("CacheSettings:ConnectionString is required to enable Redis distributed cache.");
             }
 
-            services.AddDistributedRedisCache(options => { options.Configuration = connectionString; });
+            services.AddStackExchangeRedisCache(options => { options.Configuration = connectionString; });
+
+            // Explicit IConnectionMultiplexer registration for scenarios IDistributedCache can't
+            // express, e.g. the atomic SET NX used by RedisLockService for stampede protection.
+            // AbortConnect=false: don't throw (and don't block callers) if Redis is briefly
+            // unreachable — StackExchange.Redis retries in the background, and callers that need
+            // to react to Redis being down (RedisCacheFilter, RedisLockService) already fall
+            // through to a direct DB fetch rather than depending on a successful connection.
+            services.AddSingleton<IConnectionMultiplexer>(_ =>
+            {
+                var options = ConfigurationOptions.Parse(connectionString);
+                options.AbortOnConnectFail = false;
+                return ConnectionMultiplexer.Connect(options);
+            });
+            services.AddSingleton<IRedisLockService, RedisLockService>();
+            services.AddSingleton<CacheStampedeGuard>();
 
             return services;
         }
