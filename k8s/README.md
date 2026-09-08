@@ -62,11 +62,48 @@ needed once SQL Server is ready.
 ```powershell
 kubectl get pods -n catalog
 kubectl get hpa -n catalog
+```
 
+## Accessing the API from your machine
+
+On a real cloud cluster, a `LoadBalancer` Service gets you a real, always-on external IP for free.
+On minikube with the `docker` driver (Windows/Mac), the cluster's network is sealed inside one
+Docker container — there's no way around needing *some* bridging process to reach it from your
+host. Pick one:
+
+**`kubectl port-forward` (recommended for local dev)** — start it once in a terminal and leave it
+running; call the API from anywhere (browser, Postman, curl, your own app) as long as that
+terminal stays open:
+
+```powershell
 kubectl port-forward -n catalog svc/catalog-api 8080:80
+
+# from another terminal / Postman / browser, while the above keeps running:
 curl http://localhost:8080/api/items
 curl -X POST http://localhost:8080/api/auth/register -H "Content-Type: application/json" -d '{"email":"k8s@test.com","password":"P@ssw0rd123!"}'
 ```
+
+If it ever stops working, the tunnel process died — just re-run the `port-forward` command.
+
+**`minikube service` (equivalent alternative)** — minikube manages the tunnel for you instead:
+
+```powershell
+minikube service catalog-api -n catalog --url
+```
+
+**Ingress (`catalog.local`, closer to a real deployment)** — `ingress.yaml` is already applied,
+but needs an ingress controller and a hosts-file entry to actually work:
+
+```powershell
+minikube addons enable ingress
+# then add to your hosts file (C:\Windows\System32\drivers\etc\hosts, needs admin):
+#   <minikube ip>  catalog.local        (get the IP via `minikube ip`)
+curl http://catalog.local/api/items
+```
+
+There's also always the in-cluster DNS name (`http://catalog-api.catalog.svc.cluster.local`) —
+that one only works for *other pods* inside the cluster (e.g. if you added a service that needed
+to call `catalog-api`), not from your machine.
 
 ## Production notes (what this demo intentionally simplifies)
 

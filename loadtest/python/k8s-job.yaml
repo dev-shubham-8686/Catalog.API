@@ -1,0 +1,46 @@
+# Runs load_test.py as a one-shot Job INSIDE the cluster, hitting catalog-api via its ClusterIP
+# Service directly (http://catalog-api) — avoids kubectl port-forward, which is a single-stream
+# proxy that throttles throughput far below what the Service can actually handle (same reasoning
+# as loadtest/k6-job.yaml one level up).
+#
+# The script is loaded from a ConfigMap at apply time (see README.md) rather than baked into a
+# custom image — dependencies are installed at container start since there's no pre-built image
+# with aiohttp+rich the way grafana/k6 ships k6 itself.
+#
+# IMPORTANT: create the ConfigMap from the real files FIRST (see README.md), then apply this file
+# — do not define the ConfigMap here too, or re-applying this file will overwrite it with an
+# empty one and every subsequent Job run will fail with "can't open file load_test.py".
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: python-load-test
+  namespace: catalog
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: load-test
+          image: python:3.12-slim
+          command:
+            - sh
+            - -c
+            - |
+              pip install --quiet -r /scripts/requirements.txt && \
+              python -u /scripts/load_test.py --base-url http://catalog-api --concurrency 50 --duration 60
+          volumeMounts:
+            - name: script
+              mountPath: /scripts
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "256Mi"
+            limits:
+              cpu: "1"
+              memory: "512Mi"
+      volumes:
+        - name: script
+          configMap:
+            name: python-loadtest-script
