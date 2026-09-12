@@ -20,7 +20,9 @@ namespace Catalog.Domain.Mappers
             {
                 Id = item.Id,
                 Name = item.Name,
-                Description = item.Description
+                Description = item.Description,
+                Price = item.Price,
+                AvailableStock = item.AvailableStock
             };
         }
 
@@ -40,7 +42,9 @@ namespace Catalog.Domain.Mappers
             {
                 Id = item.Id,
                 Name = item.Name,
-                Description = item.Description
+                Description = item.Description,
+                Price = item.Price,
+                AvailableStock = item.AvailableStock
             };
         }
 
@@ -57,7 +61,9 @@ namespace Catalog.Domain.Mappers
             return new Item
             {
                 Name = request.Name,
-                Description = request.Description
+                Description = request.Description,
+                Price = request.Price,
+                AvailableStock = request.AvailableStock
             };
         }
 

@@ -4,6 +4,7 @@ using Catalog.Worker.Handlers;
 using EventBus.Extensions;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Order.Contracts.Events;
 using Polly;
 using StackExchange.Redis;
 
@@ -18,10 +19,16 @@ builder.Services.AddDbContext<WorkerDbContext>(opt =>
 
 builder.Services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(cacheConnectionString));
 
+// Producer side: replies to Order.Api's OrderPlacedIntegrationEvent with
+// StockReservedIntegrationEvent / StockReservationFailedIntegrationEvent.
+builder.Services.AddEventOutbox<WorkerDbContext>(config);
+
 builder.Services.AddEventConsumer<WorkerDbContext>(config, subscriptions => subscriptions
     .Subscribe<ItemCreatedIntegrationEvent, ItemCreatedEventHandler>()
     .Subscribe<ItemUpdatedIntegrationEvent, ItemUpdatedEventHandler>()
-    .Subscribe<ItemDeletedIntegrationEvent, ItemDeletedEventHandler>());
+    .Subscribe<ItemDeletedIntegrationEvent, ItemDeletedEventHandler>()
+    .Subscribe<OrderPlacedIntegrationEvent, OrderPlacedEventHandler>()
+    .Subscribe<ReleaseStockIntegrationEvent, ReleaseStockEventHandler>());
 
 void ExecuteMigrations(IApplicationBuilder app, IConfiguration configuration)
 {

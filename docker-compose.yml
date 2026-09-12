@@ -116,6 +116,42 @@ services:
     networks:
       - my_network
 
+  # ── Order API (second bounded context — own database "orders_db" on the same SQL Server
+  #    instance, calls Catalog.API synchronously over REST for price/stock reads) ────────────────
+  order_api:
+    container_name: order_api
+    build:
+      context: .
+      dockerfile: containers/order-api/Dockerfile
+    env_file:
+      - containers/order-api/order-api.env
+    ports:
+      - "5300:5300"
+    depends_on:
+      catalog_db:
+        condition: service_healthy
+      catalog_esb:
+        condition: service_healthy
+      catalog_api:
+        condition: service_started
+    networks:
+      - my_network
+
+  # ── Order Worker (runs the place-order saga orchestrator) ───────────────────────────────────
+  order_worker:
+    build:
+      context: .
+      dockerfile: containers/order-worker/Dockerfile
+    env_file:
+      - containers/order-worker/order-worker.env
+    depends_on:
+      catalog_db:
+        condition: service_healthy
+      catalog_esb:
+        condition: service_healthy
+    networks:
+      - my_network
+
 networks:
   my_network:
     driver: bridge
