@@ -1,19 +1,46 @@
 using Catalog.Domain.Requests.Item;
 using Catalog.Domain.Responses;
 using Catalog.Domain.Responses.Item;
+using Identity.Authentication.Contracts;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 
 namespace Catalog.API.IntegrationTests.Items
 {
     [Collection(IntegrationTestCollection.Name)]
-    public class ItemsApiTests
+    public class ItemsApiTests : IAsyncLifetime
     {
+        private readonly ApiTestFixture _fixture;
         private readonly HttpClient _client;
 
         public ItemsApiTests(ApiTestFixture fixture)
         {
+            _fixture = fixture;
             _client = fixture.CreateClient();
+        }
+
+        // Every item endpoint now requires auth (reads: any authenticated user, writes: Admin) —
+        // authenticate once as Admin for this class's tests, which exercise the full CRUD surface.
+        // Dedicated tests below cover the anonymous/non-admin cases explicitly.
+        public async Task InitializeAsync()
+        {
+            var token = await RegisterAdminAndLoginAsync($"items-admin-{Guid.NewGuid()}@test.com", "P@ssw0rd123!");
+            _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        }
+
+        public Task DisposeAsync() => Task.CompletedTask;
+
+        private async Task<string> RegisterAdminAndLoginAsync(string email, string password)
+        {
+            (await _client.PostAsJsonAsync("/api/auth/register", new RegisterRequest(email, password))).EnsureSuccessStatusCode();
+
+            await _fixture.PromoteToAdminAsync(email);
+
+            var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", new LoginRequest(email, password));
+            loginResponse.EnsureSuccessStatusCode();
+            var login = await loginResponse.Content.ReadFromJsonAsync<LoginResponse>();
+            return login!.AccessToken;
         }
 
         // PaginatedItemResponseModel<T>'s constructor parameter names don't match its property
@@ -159,6 +186,60 @@ namespace Catalog.API.IntegrationTests.Items
             var response = await _client.PostAsJsonAsync("/api/items", request);
             response.EnsureSuccessStatusCode();
             return (await response.Content.ReadFromJsonAsync<GetItemResponse>())!;
+        }
+
+        [Fact]
+        public async Task GetAll_WithoutToken_Returns401()
+        {
+            using var anonymousClient = _fixture.CreateClient();
+
+            var response = await anonymousClient.GetAsync("/api/items");
+
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task Get_WithNonAdminToken_Returns200()
+        {
+            var created = await CreateItemAsync();
+
+            using var nonAdminClient = _fixture.CreateClient();
+            var email = $"items-reader-{Guid.NewGuid()}@test.com";
+            const string password = "P@ssw0rd123!";
+            (await nonAdminClient.PostAsJsonAsync("/api/auth/register", new RegisterRequest(email, password))).EnsureSuccessStatusCode();
+            var login = await (await nonAdminClient.PostAsJsonAsync("/api/auth/login", new LoginRequest(email, password))).Content.ReadFromJsonAsync<LoginResponse>();
+            nonAdminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", login!.AccessToken);
+
+            var response = await nonAdminClient.GetAsync($"/api/items/{created.Id}");
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task Create_WithoutToken_Returns401()
+        {
+            using var anonymousClient = _fixture.CreateClient();
+            var request = new AddItemRequest { Name = "Should Not Be Created", Description = "no token" };
+
+            var response = await anonymousClient.PostAsJsonAsync("/api/items", request);
+
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task Create_WithNonAdminToken_Returns403()
+        {
+            using var nonAdminClient = _fixture.CreateClient();
+            var email = $"items-nonadmin-{Guid.NewGuid()}@test.com";
+            const string password = "P@ssw0rd123!";
+            (await nonAdminClient.PostAsJsonAsync("/api/auth/register", new RegisterRequest(email, password))).EnsureSuccessStatusCode();
+            var login = await (await nonAdminClient.PostAsJsonAsync("/api/auth/login", new LoginRequest(email, password))).Content.ReadFromJsonAsync<LoginResponse>();
+            nonAdminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", login!.AccessToken);
+
+            var request = new AddItemRequest { Name = "Should Not Be Created", Description = "non-admin" };
+            var response = await nonAdminClient.PostAsJsonAsync("/api/items", request);
+
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
         }
     }
 }

@@ -10,6 +10,7 @@ namespace Order.Infrastructure.SchemaDefinitions
         {
             builder.ToTable("Orders", OrderDbContext.DEFAULT_SCHEMA);
             builder.HasKey(o => o.Id);
+            builder.HasIndex(o => o.UserId);
             builder.Property(o => o.UnitPriceSnapshot).HasColumnType("decimal(18,2)");
             builder.Property(o => o.Status).HasConversion<string>().HasMaxLength(50);
             builder.Property(o => o.CancellationReason).HasMaxLength(500);

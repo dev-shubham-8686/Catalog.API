@@ -11,6 +11,7 @@ namespace Order.Api
             public const string Create = Base;
             public const string Get = $"{Base}/{{id:guid}}";
             public const string GetAll = Base;
+            public const string Mine = $"{Base}/me";
         }
 
         public static class Health

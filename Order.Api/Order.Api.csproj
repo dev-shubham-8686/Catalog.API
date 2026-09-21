@@ -19,6 +19,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Catalog.Client\Catalog.Client.csproj" />
     <ProjectReference Include="..\EventBus\EventBus.csproj" />
+    <ProjectReference Include="..\Identity.Authentication\Identity.Authentication.csproj" />
     <ProjectReference Include="..\Order.Domain\Order.Domain.csproj" />
     <ProjectReference Include="..\Order.Infrastructure\Order.Infrastructure.csproj" />
   </ItemGroup>

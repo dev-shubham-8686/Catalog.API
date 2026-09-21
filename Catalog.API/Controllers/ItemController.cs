@@ -4,13 +4,16 @@ using Catalog.Domain.Requests.Item;
 using Catalog.Domain.Responses;
 using Catalog.Domain.Responses.Item;
 using Catalog.Domain.Services;
+using Identity.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
 
 namespace Catalog.API.Controllers
 {
-    
+
     [ApiController]
+    [Authorize]
     //[JsonException]
     public class ItemController : ControllerBase
     {
@@ -99,6 +102,7 @@ namespace Catalog.API.Controllers
         }
 
         [HttpPost(ApiEndpoints.Items.Create)]
+        [Authorize(Policy = AuthPolicyNames.AdminOnly)]
         [ProducesResponseType(typeof(AddItemResponse), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Create([FromBody] AddItemRequest request, CancellationToken cancellationToken = default)
@@ -116,6 +120,7 @@ namespace Catalog.API.Controllers
         }
 
         [HttpPut(ApiEndpoints.Items.Update)]
+        [Authorize(Policy = AuthPolicyNames.AdminOnly)]
         [ProducesResponseType(typeof(EditItemResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] EditItemRequest request, CancellationToken cancellationToken = default)
@@ -131,6 +136,7 @@ namespace Catalog.API.Controllers
         }
 
         [HttpDelete(ApiEndpoints.Items.Delete)]
+        [Authorize(Policy = AuthPolicyNames.AdminOnly)]
         [ProducesResponseType(typeof(void), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Delete([FromRoute] Guid id, CancellationToken cancellationToken = default)

@@ -1,5 +1,6 @@
 using Catalog.Client.Extensions;
 using EventBus.Extensions;
+using Identity.Authentication.Extensions;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -25,6 +26,14 @@ builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 
 builder.Services.AddCatalogClient(config.GetSection("CatalogApi:BaseUrl").Value!);
+
+// Decentralized token validation: Order.Api trusts tokens signed by the shared Jwt:Key/Issuer/
+// Audience (see appsettings' Jwt section, which must match Catalog.API's exactly) without ever
+// calling back to the issuer. Deliberately no AddIdentityAuthentication() here — Order.Api has no
+// business hosting its own copy of the Identity data store, only validating tokens minted
+// elsewhere (Catalog.API's mounted Identity.Authentication AuthController).
+builder.Services.AddJwtAuthentication(config);
+builder.Services.AddStandardAuthorizationPolicies();
 
 // Producer side only — Order.Api creates orders and enqueues OrderPlacedIntegrationEvent via the
 // transactional outbox. It does not consume events itself (that's Order.Worker's job).
@@ -65,6 +74,9 @@ if (app.Environment.IsDevelopment() || app.Environment.EnvironmentName == "Integ
 }
 
 ExecuteMigrations(app, config);
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapHealthChecks(ApiEndpoints.Health.Liveness, new HealthCheckOptions
 {

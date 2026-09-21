@@ -28,7 +28,7 @@ namespace Order.Domain.Services
             _logger = logger;
         }
 
-        public async Task<CreateOrderResult> CreateOrderAsync(CreateOrderRequest request, CancellationToken cancellationToken = default)
+        public async Task<CreateOrderResult> CreateOrderAsync(CreateOrderRequest request, Guid userId, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(request);
 
@@ -63,6 +63,7 @@ namespace Order.Domain.Services
             var order = new Entities.Order
             {
                 Id = Guid.NewGuid(),
+                UserId = userId,
                 ItemId = request.ItemId,
                 Quantity = request.Quantity,
                 UnitPriceSnapshot = item.Price.Value,
@@ -95,6 +96,21 @@ namespace Order.Domain.Services
         {
             var orders = await _orderRepository.GetAsync(cancellationToken);
             return orders.Select(o => o.MapToOrderResponse());
+        }
+
+        public async Task<IEnumerable<OrderWithItemResponse>> GetOrdersForUserAsync(Guid userId, CancellationToken cancellationToken = default)
+        {
+            var orders = (await _orderRepository.GetByUserIdAsync(userId, cancellationToken)).ToList();
+
+            // Enrich via Catalog.API, but only once per distinct item — ordering the same item
+            // several times shouldn't cost several round-trips.
+            var itemsById = new Dictionary<Guid, CatalogItemDto?>();
+            foreach (var itemId in orders.Select(o => o.ItemId).Distinct())
+            {
+                itemsById[itemId] = await _catalogItemClient.GetItemAsync(itemId, cancellationToken);
+            }
+
+            return orders.Select(o => o.MapToOrderWithItemResponse(itemsById[o.ItemId]));
         }
     }
 }

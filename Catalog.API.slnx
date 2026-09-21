@@ -21,6 +21,7 @@
   <Folder Name="/tests/">
     <Project Path="Catalog.API.IntegrationTests/Catalog.API.IntegrationTests.csproj" Id="5e8f2a1c-4b6d-4e9a-9c3f-1a2b3c4d5e6f" />
     <Project Path="Catalog.Infrastructure.Tests/Catalog.Infrastructure.Tests.csproj" Id="b0d56977-021d-43a1-b10f-b625406f277d" />
+    <Project Path="Order.Api.IntegrationTests/Order.Api.IntegrationTests.csproj" Id="6f7a8b9c-0d1e-4f6a-b17c-8d9e0f1a2b3c" />
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path="README.md" />

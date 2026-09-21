@@ -31,6 +31,14 @@ namespace Order.Infrastructure.Repositories
                 .ToListAsync(cancellationToken);
         }
 
+        public async Task<IEnumerable<Domain.Entities.Order>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
+        {
+            return await _context.Orders
+                .Where(o => o.UserId == userId)
+                .OrderByDescending(o => o.CreatedAtUtc)
+                .ToListAsync(cancellationToken);
+        }
+
         public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
             return _context.SaveChangesAsync(cancellationToken);
