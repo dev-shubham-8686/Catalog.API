@@ -10,9 +10,13 @@ data:
   ASPNETCORE_ENVIRONMENT: "Integration"
   Database__AutoMigrate: "true"
 
-  CacheSettings__ConnectionString: "redis:6379"
+  # SQL Server/Redis/RabbitMQ run OUTSIDE the cluster now (see external-infra-compose.yml),
+  # standing in for a real managed cloud service — reached via Docker Desktop's host-gateway DNS
+  # name, the same way the app would reach a real external endpoint over the network.
+  CacheSettings__ConnectionString: "host.docker.internal:16380"
 
-  EventBus__HostName: "rabbitmq"
+  EventBus__HostName: "host.docker.internal"
+  EventBus__Port: "15680"
   EventBus__ExchangeName: "integration_events"
   EventBus__ServiceName: "catalog"
   EventBus__DispatchIntervalSeconds: "5"

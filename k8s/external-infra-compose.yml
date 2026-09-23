@@ -1,0 +1,67 @@
+# Simulates the "managed cloud service" tier that a real Kubernetes deployment would connect
+# OUT to (Azure SQL, a managed Redis, CloudAMQP/managed RabbitMQ) instead of self-hosting.
+# These three containers run directly on Docker Desktop, deliberately OUTSIDE the minikube
+# cluster — catalog-api/catalog-worker (in k8s) reach them via host.docker.internal, the same
+# way they'd reach a real external endpoint over the network, just simulated locally.
+#
+# Separate from docker-compose.yml on purpose: this is its own environment with its own data,
+# not shared with the plain docker-compose stack. Ports are deliberately non-default so both
+# stacks can run side by side without colliding (docker-compose.yml already uses 1433/6379/5672).
+#
+# MSSQL_SA_PASSWORD here must match k8s/secret.yaml's MSSQL_SA_PASSWORD / DataSource connection
+# string — that's what lets catalog-api actually authenticate against this container.
+version: "3.9"
+
+volumes:
+  k8s_mssql_data:
+  k8s_redis_data:
+  k8s_rabbitmq_data:
+
+services:
+  sqlserver:
+    container_name: k8s-external-sqlserver
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "P@ssw0rd_ReplaceMe"
+    ports:
+      - "14330:1433"
+    volumes:
+      - k8s_mssql_data:/var/opt/mssql
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "P@ssw0rd_ReplaceMe" -Q "SELECT 1" -No
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  redis:
+    container_name: k8s-external-redis
+    image: redis:alpine
+    ports:
+      - "16380:6379"
+    volumes:
+      - k8s_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    container_name: k8s-external-rabbitmq
+    image: rabbitmq:3-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "15680:5672"
+      - "15690:15672"  # Management UI -> http://localhost:15690
+    volumes:
+      - k8s_rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s

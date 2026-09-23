@@ -24,12 +24,25 @@ spec:
       containers:
         - name: load-test
           image: python:3.12-slim
+          # Item creation is Admin-only. Set ONE of these before applying (see README.md for how
+          # to promote a user to Admin — there is no self-service escalation endpoint):
+          #   ADMIN_EMAIL / ADMIN_PASSWORD: a pre-promoted Admin account, used only to seed one item.
+          #   ITEM_ID: an existing item id, to skip seeding entirely.
+          # Without one of these the Job fails fast with a clear error instead of a confusing 403.
+          env:
+            - name: ADMIN_EMAIL
+              value: ""
+            - name: ADMIN_PASSWORD
+              value: ""
+            - name: ITEM_ID
+              value: ""
           command:
             - sh
             - -c
             - |
               pip install --quiet -r /scripts/requirements.txt && \
-              python -u /scripts/load_test.py --base-url http://catalog-api --concurrency 50 --duration 60
+              python -u /scripts/load_test.py --base-url http://catalog-api --concurrency 50 --duration 60 \
+                ${ADMIN_EMAIL:+--admin-email "$ADMIN_EMAIL"} ${ADMIN_PASSWORD:+--admin-password "$ADMIN_PASSWORD"} ${ITEM_ID:+--item-id "$ITEM_ID"}
           volumeMounts:
             - name: script
               mountPath: /scripts

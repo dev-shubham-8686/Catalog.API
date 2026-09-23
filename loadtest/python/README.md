@@ -13,21 +13,41 @@ pip install -r requirements.txt
 
 ## `load_test.py` — real-time load test dashboard
 
-Same mixed workload as `../mixed-workload.js` (50% cached item reads, 25% list reads, 15% health
-checks, 7% logins, 3% writes), but with a live-updating dashboard instead of a final report:
-requests/sec, success rate, latency (avg/p50/p95/p99), and a per-endpoint breakdown — all
-refreshing ~4x/second while the test runs.
+Same mixed workload as `../mixed-workload.js` (56% cached item reads, 28% list reads, 16% health
+checks), but with a live-updating dashboard instead of a final report: requests/sec, success
+rate, latency (avg/p50/p95/p99), and a per-endpoint breakdown — all refreshing ~4x/second while
+the test runs.
+
+Login and registration are **not** part of that mix — every endpoint now requires auth, so the
+script registers one user and logs in exactly once in `setup()` to get a bearer token, then
+reuses it for the whole run. That keeps password-hashing cost out of the numbers this script is
+actually trying to measure (read throughput), and matches the same choice made in
+`../mixed-workload.js`.
+
+Item creation is Admin-only, and this script's own load-test user is deliberately just a plain
+registered user (there's no self-service admin escalation endpoint, by design) — so give it
+**one** of these to seed/read an item with:
 
 ```powershell
-python load_test.py --base-url http://localhost:5000 --concurrency 50 --duration 60
+# Existing item — skips seeding entirely
+python load_test.py --base-url http://localhost:5000 --concurrency 50 --duration 60 --item-id <guid>
+
+# Pre-promoted Admin account — setup() logs in and seeds a fresh item
+python load_test.py --base-url http://localhost:5000 --concurrency 50 --duration 60 --admin-email admin@test.com --admin-password "P@ssw0rd123!"
 ```
+
+To promote a user to Admin (there's no API for this — direct DB access is the only way):
+register the user via `POST /api/auth/register`, then either run
+`ApiTestFixture.PromoteToAdminAsync` from `Catalog.API.IntegrationTests` against the same
+database, or insert the role assignment directly (`AspNetRoles`/`AspNetUserRoles`) via `sqlcmd`.
 
 - `--base-url` — target API (docker-compose default `:5000`, or a `kubectl port-forward` address)
 - `--concurrency` — number of concurrent workers continuously firing requests
 - `--duration` — test length in seconds
 
-It seeds one item and one user at startup (visible as "Seeding test data..."), then hammers the
-mix above until time runs out. Ctrl+C stops early and still prints the summary so far.
+Without `--item-id` or `--admin-email`/`--admin-password`, the script fails fast in `setup()`
+with a message explaining which one to provide, rather than a confusing 403 partway through.
+Ctrl+C stops early and still prints the summary so far.
 
 ### Running it *inside* the cluster (real numbers, not port-forward-throttled ones)
 

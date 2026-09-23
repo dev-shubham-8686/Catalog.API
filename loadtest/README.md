@@ -1,12 +1,30 @@
 # Load testing
 
 Two k6 scripts:
-- **`mixed-workload.js`** — realistic traffic mix: 50% cached single-item reads, 25% paginated
-  list reads, 15% liveness checks, 7% logins, 3% writes (item create, which exercises the outbox
-  + RabbitMQ publish path too). Runs at a single target rate for a sustained period.
+- **`mixed-workload.js`** — realistic read-heavy traffic mix: 56% cached single-item reads, 28%
+  paginated list reads, 16% liveness checks. Runs at a single target rate for a sustained period.
 - **`breakpoint-ramp.js`** — cached single-item reads only, stepping up through fixed rate
   plateaus (100 → 250 → 500 → 1000 → 1500 req/s) to isolate exactly how far the read path alone
   scales, without auth/write CPU cost muddying the result.
+
+**Login and registration are deliberately excluded from both request mixes.** Every endpoint now
+requires auth, so each script registers one user and logs in exactly once in `setup()` to get a
+bearer token reused for the whole run — that keeps password-hashing cost out of the numbers these
+scripts are trying to measure (read throughput), rather than mixing auth cost into every request.
+
+Item creation is Admin-only, and each script's load-test user is deliberately just a plain
+registered user (no self-service admin escalation endpoint exists, by design). Provide **one** of
+these env vars so `setup()` has an item to read:
+- `ITEM_ID` — an item that already exists; `setup()` just reads it.
+- `ADMIN_EMAIL` + `ADMIN_PASSWORD` — a pre-promoted Admin account; `setup()` logs in and seeds a
+  fresh item with it.
+
+To promote a user to Admin (there's no API for this — direct DB access is the only way): register
+the user via `POST /api/auth/register`, then either run
+`ApiTestFixture.PromoteToAdminAsync` from `Catalog.API.IntegrationTests` against the same
+database, or insert the role assignment directly (`AspNetRoles`/`AspNetUserRoles`) via `sqlcmd`.
+Without one of these two env vars, `setup()` throws immediately with a message saying so, instead
+of failing confusingly partway through the run.
 
 **Already run once against this deployment — see [RESULTS.md](RESULTS.md) for the actual measured
 numbers**: the cached-read path (this session's caching/outbox/HPA work) sustained 1500 req/s with
@@ -77,8 +95,9 @@ k6's end-of-run summary reports `http_reqs` (total) and the rate in `iterations/
 check:
 - `http_req_failed` — rising failure rate as load increases means you've found the actual
   breaking point (connection pool exhaustion, SQL Server CPU saturation, RabbitMQ backpressure).
-- `get_item_cached_duration` vs `create_item_duration` (custom Trends in the script) — the gap
-  between cached-read and DB-write latency shows exactly how much caching is buying you.
+- `get_item_cached_duration` vs `get_list_duration` (custom Trends in the script) — the gap
+  between a cached single-item read and an uncached paginated list read shows exactly how much
+  caching is buying you.
 - `kubectl top pods -n catalog` during the run — see which tier (API, SQL Server, Redis,
   RabbitMQ) saturates first; that's your next scaling target.
 

@@ -1,8 +1,10 @@
 <#
 .SYNOPSIS
     Deploys Catalog API to the local minikube Kubernetes cluster end to end: starts minikube if
-    needed, builds and loads the app images, applies every manifest in k8s/ in the correct
-    dependency order, waits for everything to become healthy, and prints how to reach it.
+    needed, brings up SQL Server/Redis/RabbitMQ as external Docker containers (standing in for a
+    real managed cloud service, outside the cluster), builds and loads the app images, applies
+    every manifest in k8s/ in the correct dependency order, waits for everything to become
+    healthy, and prints how to reach it.
 
 .PARAMETER SkipBuild
     Skip `docker build` + `minikube image load` - use this on a re-run when the images are
@@ -91,15 +93,28 @@ Write-Step "Applying namespace, config, and secrets"
 Invoke-Checked "apply namespace" { kubectl apply -f "$k8sDir/namespace.yaml" }
 Invoke-Checked "apply config/secret" { kubectl apply -f "$k8sDir/configmap.yaml" -f "$k8sDir/secret.yaml" }
 
-Write-Step "Applying stateful dependencies (SQL Server, Redis, RabbitMQ)"
-Invoke-Checked "apply dependencies" {
-    kubectl apply -f "$k8sDir/sqlserver.yaml" -f "$k8sDir/redis.yaml" -f "$k8sDir/rabbitmq.yaml"
+Write-Step "Ensuring external infra (SQL Server, Redis, RabbitMQ) is up outside the cluster"
+# These deliberately run OUTSIDE k8s now, standing in for a real managed cloud service (see
+# k8s/external-infra-compose.yml) — catalog-api/catalog-worker reach them via
+# host.docker.internal, same as they'd reach a real external endpoint.
+Invoke-Checked "start external infra" {
+    docker compose -f "$k8sDir/external-infra-compose.yml" up -d --build
 }
 
-Write-Step "Waiting for SQL Server to become ready (first run can take a couple of minutes)"
-Invoke-Checked "wait for sqlserver" {
-    kubectl wait --for=condition=ready pod -l app=sqlserver -n catalog --timeout=300s
+Write-Step "Waiting for external SQL Server to become healthy (first run can take a couple of minutes)"
+$sqlReady = $false
+for ($i = 0; $i -lt 60; $i++) {
+    $status = docker inspect --format='{{.State.Health.Status}}' k8s-external-sqlserver 2>$null
+    if ($status -eq "healthy") {
+        $sqlReady = $true
+        break
+    }
+    Start-Sleep -Seconds 5
 }
+if (-not $sqlReady) {
+    throw "External SQL Server did not become healthy in time. Check: docker logs k8s-external-sqlserver"
+}
+Write-Host "External SQL Server is healthy." -ForegroundColor Green
 
 Write-Step "Applying catalog-api, catalog-worker, and ingress"
 Invoke-Checked "apply app tier" {

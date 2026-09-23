@@ -1,14 +1,20 @@
-# Kubernetes manifests (self-contained demo)
+# Kubernetes manifests
 
-Plain YAML, `kubectl apply`-able to an empty local cluster — no Helm/Kustomize. Everything the app
-needs (SQL Server, Redis, RabbitMQ) runs in-cluster so this works standalone on `kind`/`minikube`.
+Plain YAML, `kubectl apply`-able to an empty local cluster — no Helm/Kustomize.
 
-**This is a demo/local topology, not a production one.** See "Production notes" below for what to
-change before running this for real.
+**Only the app tier (`catalog-api`, `catalog-worker`) runs inside Kubernetes.** SQL Server,
+Redis, and RabbitMQ run as plain Docker containers *outside* the cluster (see
+`external-infra-compose.yml`) — standing in for a real managed cloud service (Azure SQL, a
+managed Redis, CloudAMQP), reached over the network via `host.docker.internal` on their published
+ports, exactly the shape a real deployment takes: Kubernetes never owns or schedules the data
+tier, it just connects out to it. This is a closer-to-real topology than having everything
+self-hosted in-cluster — see "Production notes" below for what's still simplified versus an
+actual managed service.
 
 These manifests have been deployed and verified end-to-end on a real local cluster (minikube):
 register/login, item create/update, outbox → RabbitMQ → `catalog-worker` event handling, and Redis
-cache population/invalidation all confirmed working across separate pods.
+cache population/invalidation all confirmed working across separate pods, against the externalized
+SQL Server/Redis/RabbitMQ.
 
 ## Prerequisites
 
@@ -44,18 +50,27 @@ For a real (non-local) cluster, push these to a registry instead and update the 
 ## Apply
 
 ```powershell
+# 1. Bring up SQL Server/Redis/RabbitMQ as external containers (outside the cluster) first —
+#    catalog-api/catalog-worker need them reachable at startup.
+docker compose -f k8s/external-infra-compose.yml up -d --build
+
 kubectl apply -f k8s/namespace.yaml
 kubectl apply -f k8s/configmap.yaml -f k8s/secret.yaml
-kubectl apply -f k8s/sqlserver.yaml -f k8s/redis.yaml -f k8s/rabbitmq.yaml
-kubectl wait --for=condition=ready pod -l app=sqlserver -n catalog --timeout=300s
 kubectl apply -f k8s/catalog-api.yaml -f k8s/catalog-worker.yaml -f k8s/ingress.yaml
 
 kubectl get pods -n catalog -w
 ```
 
+Or just run `.\k8s\deploy.ps1`, which does all of the above (plus starting minikube itself and
+building/loading the app images) in the right order.
+
 `catalog-api`/`catalog-worker` run their own EF Core migrations at startup (same
 `Database:AutoMigrate`-gated logic as local/Docker Compose runs), so no separate migration step is
-needed once SQL Server is ready.
+needed once the external SQL Server is healthy.
+
+**If you change `configmap.yaml`/`secret.yaml` on an already-running deployment**, `kubectl apply`
+alone won't restart the pods — `envFrom` is only read at container start. Force a restart to pick
+up the new values: `kubectl rollout restart deployment/catalog-api deployment/catalog-worker -n catalog`.
 
 ## Verify
 
@@ -105,12 +120,29 @@ There's also always the in-cluster DNS name (`http://catalog-api.catalog.svc.clu
 that one only works for *other pods* inside the cluster (e.g. if you added a service that needed
 to call `catalog-api`), not from your machine.
 
+## Accessing the external SQL Server/Redis/RabbitMQ from your machine
+
+No `kubectl`/port-forward needed for these anymore — `external-infra-compose.yml` publishes them
+straight to `localhost`, same as any other Docker container:
+
+```powershell
+# SQL Server — Azure Data Studio / SSMS / sqlcmd against localhost,14330 (sa / see k8s/secret.yaml)
+# Redis       — redis-cli / RedisInsight against localhost:16380
+# RabbitMQ    — management UI at http://localhost:15690 (guest/guest)
+```
+
+This is the same simplification real teams make once a database is a managed cloud service: no
+tunnel through the cluster required, because the database was never inside the cluster's network
+boundary in the first place — you connect to it exactly like any other external dependency.
+
 ## Production notes (what this demo intentionally simplifies)
 
-- **SQL Server/RabbitMQ run as single-replica Deployments with a PVC, not `StatefulSet`s or
-  managed services.** Real production should use a managed database (Azure SQL, RDS, etc.) and a
-  managed or properly-clustered message broker — losing the single SQL Server or RabbitMQ pod here
-  takes down the whole stack.
+- **SQL Server/Redis/RabbitMQ are single Docker containers standing in for a managed service, not
+  an actual one.** Moving them outside the cluster (see above) reproduces the *shape* of a real
+  deployment — Kubernetes only owns the app tier — but none of the actual managed-service
+  properties: no automated backups, no failover/read replicas, no patching, no SLA. Losing that one
+  container still takes down the whole stack. Real production points these same connection
+  strings at Azure SQL/RDS, a managed Redis, and CloudAMQP/a properly-clustered broker instead.
 - **Secrets are plaintext in a committed YAML file.** Use a real secret manager (Sealed Secrets,
   External Secrets Operator, Vault, cloud KMS) instead.
 - **HPA scales on CPU only.** For `catalog-worker` specifically, scaling on RabbitMQ queue depth

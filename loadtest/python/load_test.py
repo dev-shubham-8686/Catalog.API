@@ -2,7 +2,10 @@
 Real-time load test dashboard for Catalog API.
 
 Mirrors the mixed workload used by loadtest/mixed-workload.js (k6): cached item reads,
-paginated list reads, health checks, logins, and item creates — weighted like real traffic.
+paginated list reads, and health checks — weighted like real read-heavy traffic. Login and
+registration happen exactly once, in setup(), to obtain the bearer token every request now
+needs (every endpoint requires auth) — they are deliberately excluded from the measured
+per-request mix so password-hashing cost doesn't skew what this script is trying to measure.
 Unlike the k6 script, this renders a live-updating terminal dashboard (via `rich`) while the
 test runs instead of only printing a summary at the end.
 
@@ -100,36 +103,22 @@ class Stats:
 
 
 class Workload:
-    """One shared, pre-seeded item id + user credentials, reused across all workers."""
+    """One shared, pre-seeded item id + bearer token, reused across all workers."""
 
-    def __init__(self, base_url: str):
+    def __init__(self, base_url: str, item_id: str | None = None, admin_email: str | None = None, admin_password: str | None = None):
         self.base_url = base_url.rstrip("/")
-        self.item_id: str | None = None
+        self.item_id = item_id
+        self.admin_email = admin_email
+        self.admin_password = admin_password
         self.email: str | None = None
         self.password = "P@ssw0rd123!"
 
     async def setup(self, session: aiohttp.ClientSession) -> None:
         console.print(f"[cyan]Seeding test data against {self.base_url} ...[/cyan]")
 
-        async with session.post(
-            f"{self.base_url}/api/items",
-            json={
-                "name": "LoadTest Seed Item",
-                "description": "seeded by python load_test.py",
-                "labelName": "LoadTest",
-                "price": 9.99,
-                "format": "CD",
-                "availableStock": 1000,
-            },
-        ) as resp:
-            resp.raise_for_status()
-            body = await resp.json()
-            self.item_id = body["id"]
-
-        # Warm the cache so the read-heavy part of the mix mostly hits Redis, not SQL Server.
-        async with session.get(f"{self.base_url}/api/items/{self.item_id}"):
-            pass
-
+        # Every endpoint now requires auth. Register + log in exactly once, here — not part of
+        # the measured per-request mix below (see WEIGHTS) — to get the bearer token every other
+        # request needs. session.headers is applied to every subsequent request automatically.
         self.email = f"loadtest-{uuid.uuid4()}@test.com"
         async with session.post(
             f"{self.base_url}/api/auth/register",
@@ -137,16 +126,61 @@ class Workload:
         ) as resp:
             resp.raise_for_status()
 
-        console.print(f"[green]Seeded item {self.item_id} and user {self.email}[/green]\n")
+        async with session.post(
+            f"{self.base_url}/api/auth/login",
+            json={"email": self.email, "password": self.password},
+        ) as resp:
+            resp.raise_for_status()
+            token = (await resp.json())["accessToken"]
+        session.headers["Authorization"] = f"Bearer {token}"
+
+        if not self.item_id:
+            # Item creation is Admin-only, and this load-test user is deliberately just a plain
+            # registered user (no self-service admin escalation exists, by design) — so seeding
+            # needs a pre-promoted Admin account. Pass --item-id instead to skip seeding entirely.
+            if not self.admin_email or not self.admin_password:
+                raise RuntimeError(
+                    "No item to read: pass --item-id for an existing item, or "
+                    "--admin-email/--admin-password for a pre-promoted Admin account so setup() "
+                    "can seed one. See loadtest/python/README.md."
+                )
+
+            async with session.post(
+                f"{self.base_url}/api/auth/login",
+                json={"email": self.admin_email, "password": self.admin_password},
+            ) as resp:
+                resp.raise_for_status()
+                admin_token = (await resp.json())["accessToken"]
+
+            async with session.post(
+                f"{self.base_url}/api/items",
+                json={
+                    "name": "LoadTest Seed Item",
+                    "description": "seeded by python load_test.py",
+                    "labelName": "LoadTest",
+                    "price": 9.99,
+                    "format": "CD",
+                    "availableStock": 1000,
+                },
+                headers={"Authorization": f"Bearer {admin_token}"},
+            ) as resp:
+                resp.raise_for_status()
+                body = await resp.json()
+                self.item_id = body["id"]
+
+        # Warm the cache so the read-heavy part of the mix mostly hits Redis, not SQL Server.
+        async with session.get(f"{self.base_url}/api/items/{self.item_id}"):
+            pass
+
+        console.print(f"[green]Using item {self.item_id} and user {self.email}[/green]\n")
 
 
-# (endpoint label, relative weight) — mirrors mixed-workload.js's weighting.
+# (endpoint label, relative weight) — mirrors mixed-workload.js's weighting. Login/registration
+# and the Admin-only write path are deliberately excluded (see module docstring).
 WEIGHTS: list[tuple[str, float]] = [
-    ("GET /api/items/{id} (cached)", 0.50),
-    ("GET /api/items (list)", 0.25),
-    ("GET /health/live", 0.15),
-    ("POST /api/auth/login", 0.07),
-    ("POST /api/items (write)", 0.03),
+    ("GET /api/items/{id} (cached)", 0.56),
+    ("GET /api/items (list)", 0.28),
+    ("GET /health/live", 0.16),
 ]
 
 
@@ -167,32 +201,9 @@ async def do_request(session: aiohttp.ClientSession, workload: Workload, stats: 
                 ok = resp.status == 200
                 if not ok:
                     error = f"HTTP {resp.status}"
-        elif label.startswith("GET /health/live"):
+        else:  # GET /health/live
             async with session.get(f"{workload.base_url}/health/live") as resp:
                 ok = resp.status == 200
-                if not ok:
-                    error = f"HTTP {resp.status}"
-        elif label.startswith("POST /api/auth/login"):
-            async with session.post(
-                f"{workload.base_url}/api/auth/login",
-                json={"email": workload.email, "password": workload.password},
-            ) as resp:
-                ok = resp.status == 200
-                if not ok:
-                    error = f"HTTP {resp.status}"
-        else:  # write path
-            async with session.post(
-                f"{workload.base_url}/api/items",
-                json={
-                    "name": f"LoadTest Item {uuid.uuid4()}",
-                    "description": "created during load test",
-                    "labelName": "LoadTest",
-                    "price": 1.23,
-                    "format": "CD",
-                    "availableStock": 1,
-                },
-            ) as resp:
-                ok = resp.status == 201
                 if not ok:
                     error = f"HTTP {resp.status}"
     except Exception as ex:  # network errors, timeouts, connection refused, etc.
@@ -267,9 +278,9 @@ def render_dashboard(stats: Stats, duration: int, concurrency: int, base_url: st
     return Group(header, Panel(summary, title="Overall"), table)
 
 
-async def run(base_url: str, concurrency: int, duration: int) -> None:
+async def run(base_url: str, concurrency: int, duration: int, item_id: str | None, admin_email: str | None, admin_password: str | None) -> None:
     stats = Stats()
-    workload = Workload(base_url)
+    workload = Workload(base_url, item_id=item_id, admin_email=admin_email, admin_password=admin_password)
 
     connector = aiohttp.TCPConnector(limit=concurrency + 10)
     timeout = aiohttp.ClientTimeout(total=30)
@@ -298,10 +309,13 @@ def main() -> None:
     parser.add_argument("--base-url", default="http://localhost:5000", help="API base URL")
     parser.add_argument("--concurrency", type=int, default=50, help="Number of concurrent workers")
     parser.add_argument("--duration", type=int, default=60, help="Test duration in seconds")
+    parser.add_argument("--item-id", default=None, help="Existing item id to read instead of seeding a new one")
+    parser.add_argument("--admin-email", default=None, help="Pre-promoted Admin account email, used only to seed an item if --item-id is not given")
+    parser.add_argument("--admin-password", default=None, help="Password for --admin-email")
     args = parser.parse_args()
 
     try:
-        asyncio.run(run(args.base_url, args.concurrency, args.duration))
+        asyncio.run(run(args.base_url, args.concurrency, args.duration, args.item_id, args.admin_email, args.admin_password))
     except KeyboardInterrupt:
         console.print("\n[yellow]Interrupted.[/yellow]")
 

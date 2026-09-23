@@ -31,6 +31,15 @@ spec:
               value: "30s"
             - name: SUSTAIN_DURATION
               value: "60s"
+            # Item creation is Admin-only. Set ONE of these before applying (see README.md for
+            # how to promote a user to Admin — there is no self-service escalation endpoint):
+            #   ITEM_ID: an existing item id, so setup() just reads it instead of creating one.
+            #   ADMIN_EMAIL / ADMIN_PASSWORD: a pre-promoted Admin account setup() logs into to
+            #   seed a fresh item. Without one of these the Job fails fast with a clear error.
+            - name: ADMIN_EMAIL
+              value: ""
+            - name: ADMIN_PASSWORD
+              value: ""
           resources:
             requests:
               cpu: "1"
